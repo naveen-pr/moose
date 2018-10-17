@@ -469,7 +469,7 @@ class Translator(mixins.ConfigObject):
 
             # Loop through all the jobs and look for messages to receive
             for job, conn1, conn2 in jobs:
-                if conn1.poll():
+                if conn1.poll(0.1):
                     uid = conn1.recv()
                     if uid == Translator.PROCESS_FINISHED:
                         conn1.close()
