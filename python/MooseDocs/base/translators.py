@@ -239,7 +239,8 @@ class Translator(mixins.ConfigObject):
 
         self.read(source_nodes, num_threads)
         self.executeExtensionFunction('preExecute', self.root)
-        self.tokenize(source_nodes, num_threads)
+        #self.tokenize(source_nodes, num_threads)
+        mooseutils.run_profile(self.tokenize, source_nodes, num_threads)
         self.render(source_nodes, num_threads)
         self.index(source_nodes, num_threads)
         self.executeExtensionFunction('postExecute', self.root)
