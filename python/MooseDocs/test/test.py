@@ -5,6 +5,7 @@ import anytree
 import copy
 import uuid
 import ctypes
+import random
 import collections
 import mooseutils
 import MooseDocs
@@ -55,20 +56,99 @@ def runProcess(target, translator, nodes, args=tuple(), attributes=tuple(), num_
                     setattr(source_nodes[uid], attr, conn1.recv())
     return time.time() - start
 
+def build(translator, nodes, ast, chunk, lock):
+
+
+    for idx in chunk:
+        node = nodes[idx]
+        content = node.read()
+
+        root = translator.reader.getRoot()
+        translator.reader.tokenize(root, content, node)
+        #print root
+        ast[idx] = root
+
+    lock.acquire()
+    print os.getpid(), len(nodes), len(chunk), len(ast), chunk
+    for idx, node in enumerate(nodes):
+        print idx, ast[idx].height
+    #lock.release()
+
+
+    lock.acquire()
+    print os.getpid(), ast#[a.height for a in ast]
+    lock.release()
+
+
+    """
+    for node in nodes:
+        content = node.read()
+        root = translator.reader.getRoot()
+        translator.reader.tokenize(root, content, node)
+        ast[node._Page__unique_id] = root
+
+    lock.acquire()
+    for n in anytree.PreOrderIter(nodes[0].root):
+
+        if n._ast is None:
+            n._ast = ast[node._Page__unique_id]
+
+    print os.getpid(), [n.ast.height for n in anytree.PreOrderIter(nodes[0].root)]
+    lock.release()
+
+    for node in nodes:
+        result = translator.renderer.getRoot()
+        translator.renderer.render(result, node.ast, node)
+
+        node._result = result
+        node.write()
+    """
+
+
+
 if __name__ == '__main__':
-    #config = 'materialize.yml'
-    config = os.path.join(os.getenv('MOOSE_DIR'), 'modules', 'doc', 'config.yml')
+    config = 'materialize.yml'
+    #config = os.path.join(os.getenv('MOOSE_DIR'), 'modules', 'doc', 'config.yml')
     translator, _ = common.load_config(config)
     translator.init()
 
 
-    num_threads = 24
+    num_threads = 2
 
     nodes = [n for n in anytree.PreOrderIter(translator.root)]
     source_nodes = [n for n in nodes if isinstance(n, pages.SourceNode)]
 
+
+    if True:
+        N = len(source_nodes)
+        manager = multiprocessing.Manager()
+        lock = manager.Lock()
+
+        #ast = manager.dict()
+        ast = manager.list([None]*N)
+        indices = list(range(N))
+        #random.shuffle(indices)
+        chunks = mooseutils.make_chunks(indices, num_threads)
+
+        #for i, n in enumerate(source_nodes):
+        #    n._Page__unique_id = i
+
+        jobs = []
+        for chunk in chunks:
+            p = multiprocessing.Process(target=build,
+                                        args=(translator, source_nodes, ast, chunk, lock))
+            #p.daemon = True
+            p.start()
+            jobs.append(p)
+
+        for job in jobs:
+            job.join()
+
+
+
+
     # CURRENT FUNCTIONS
-    if False:
+    elif False:
         translator.read(nodes, 1)
         translator.executeExtensionFunction('preExecute', translator.root)
         start = time.time()
@@ -76,7 +156,7 @@ if __name__ == '__main__':
         print 'CURRENT:', time.time() - start, [n.ast.height for n in source_nodes]
 
     # PIPE VERSION
-    elif True:
+    elif False:
         translator.read(nodes, 1)
         translator.executeExtensionFunction('preExecute', translator.root)
 
