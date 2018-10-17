@@ -15,7 +15,7 @@ import logging
 import mooseutils
 
 import MooseDocs
-from MooseDocs.tree import page
+from MooseDocs.tree import pages
 
 LOG = logging.getLogger(__name__)
 
@@ -111,23 +111,25 @@ def doc_import(root_dir, content=None):
 
     return sorted(output)
 
-def create_file_node(parent, name, filename):
+def create_file_node(parent, name, filename, in_ext, out_ext):
     """
     Create the correct node object for the given extension.
     """
     _, ext = os.path.splitext(filename)
-    if ext == '.md':
-        return page.MarkdownNode(parent, name=name, source=filename)
+    if ext in in_ext:
+        return pages.SourceNode(parent, name=name, source=filename, output_extension=out_ext)
     else:
-        return page.FileNode(parent, name=name, source=filename)
+        return pages.FileNode(parent, name=name, source=filename)
 
-def doc_tree(items):
+def doc_tree(items, in_ext, out_ext):
     """
     Create a tree of files for processing.
 
     Inputs:
-        inputs: [list[dict(),...] A list of dict items, each dict entry must contain the 'root_dir'
+        items: [list[dict(),...] A list of dict items, each dict entry must contain the 'root_dir'
                 and 'content' fields that are passed to the doc_import function.
+        in_ext[tuple]: Set of extensions to be converted (e.g., ('.md', )).
+        out_ext[str]: The extension of rendered result (e.g., '.html').
     """
     # Error checking
     if not isinstance(items, list) or any(not isinstance(x, dict) for x in items):
@@ -139,7 +141,7 @@ def doc_tree(items):
     nodes = dict()
 
     # Create the root node
-    nodes[()] = page.DirectoryNode(source='')
+    nodes[()] = pages.DirectoryNode(source='')
 
     # Create the file tree
     for value in items:
@@ -163,13 +165,13 @@ def doc_tree(items):
             for i in range(1, len(key)):
                 dir_key = key[:i]
                 if dir_key not in nodes:
-                    nodes[dir_key] = page.DirectoryNode(nodes[key[:i-1]],
+                    nodes[dir_key] = pages.DirectoryNode(nodes[key[:i-1]],
                                                         name=key[i-1],
                                                         source=os.path.join(root, *dir_key))
 
             # Create the file node, if it doesn't already exist. This enforces that the first
             # item in the supplied content lists is the page that is rendered.
             if key not in nodes:
-                nodes[key] = create_file_node(nodes[key[:-1]], key[-1], filename)
+                nodes[key] = create_file_node(nodes[key[:-1]], key[-1], filename, in_ext, out_ext)
 
     return nodes[()]

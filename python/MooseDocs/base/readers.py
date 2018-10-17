@@ -11,7 +11,7 @@ from lexers import RecursiveLexer
 
 LOG = logging.getLogger(__name__)
 
-class Reader(mixins.ConfigObject, mixins.TranslatorObject, mixins.ComponentObject):
+class Reader(mixins.ConfigObject, mixins.ComponentObject):
     """
     Base class for reading (parsing) files into AST.
 
@@ -26,26 +26,18 @@ class Reader(mixins.ConfigObject, mixins.TranslatorObject, mixins.ComponentObjec
     def __init__(self, lexer, **kwargs):
         mixins.ConfigObject.__init__(self, **kwargs)
         mixins.ComponentObject.__init__(self)
-        mixins.TranslatorObject.__init__(self)
         common.check_type('lexer', lexer, RecursiveLexer)
         self.__lexer = lexer
 
-    @property
-    def lexer(self):
+    def getRoot(self):
         """
-        Return the Lexer object for the reader, this is useful for preforming nested parsing as
-        is the case for the markdown parsing done by MooseDocs, see core.py for examples.
-        """
-        return self.__lexer
+        Create the AST root node.
 
-    def reinit(self):
+        This is called by the Translator object.
         """
-        Call the Component reinit() methods.
-        """
-        for comp in self.components:
-            comp.reinit()
+        return tokens.Token(None)
 
-    def parse(self, root, content, group=None):
+    def tokenize(self, root, content, page, group=None, line=1):
         """
         Perform the parsing of the supplied content into an AST with the provided root node.
 
@@ -59,23 +51,13 @@ class Reader(mixins.ConfigObject, mixins.TranslatorObject, mixins.ComponentObjec
             common.check_type('root', root, tokens.Token)
             common.check_type('content', content, unicode)
 
-        # Re-initialize
-        config = self.getConfig()
-        self.reinit()
-
-        # Pre-tokenize
-        self.translator.executeExtensionFunction('preTokenize', root, config)
-
         # Tokenize
-        self.__lexer.tokenize(root, self.__lexer.grammar(group), content)
-
-        # Post-tokenize
-        self.translator.executeExtensionFunction('postTokenize', root, config)
+        self.__lexer.tokenize(root, self.__lexer.grammar(group), content, page, line)
 
         # Report errors
         for token in anytree.PreOrderIter(root):
             if isinstance(token, tokens.ErrorToken):
-                LOG.error(token.report(self.translator.current))
+                LOG.error(token.report(page))
 
     def add(self, group, component, location='_end'):
         """
@@ -96,12 +78,41 @@ class Reader(mixins.ConfigObject, mixins.TranslatorObject, mixins.ComponentObjec
 
         # Store and init component, checking self.initialized() allows this object to be used
         # without the Translator which is useful in some cases.
+        component.init(self)
         self.addComponent(component)
-        if self.initialized():
-            component.init(self.translator)
 
         # Update the lexer
         self.__lexer.add(group, name, component.RE, component, location)
+
+    def preExecute(self, root):
+        """
+        Called by Translator prior to beginning conversion, after reading.
+        """
+        pass
+
+    def postExecute(self, root):
+        """
+        Called by Translator after all conversion is complete, prior to writing.
+        """
+        pass
+
+    def preTokenize(self, ast, page):
+        """
+        Called by Translator prior to tokenization.
+
+        Inputs:
+            ast[tokens.Token]: The root node of the token tree.
+        """
+        pass
+
+    def postTokenize(self, ast, page):
+        """
+        Called by Translator after tokenization.
+
+        Inputs:
+            ast[tokens.Token]: The root node of the token tree.
+        """
+        pass
 
 class MarkdownReader(Reader):
     """
@@ -111,6 +122,8 @@ class MarkdownReader(Reader):
           the regex's are designed and ordered correctly. Use 'content' or something similar for
           recursion.
     """
+    EXTENSIONS = ('.md',)
+
     def __init__(self, **kwargs):
         Reader.__init__(self,
                         lexer=RecursiveLexer(MooseDocs.BLOCK, MooseDocs.INLINE),

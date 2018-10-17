@@ -132,22 +132,24 @@ class TestPickleAST(testing.MooseDocsTestCase):
         do_pickle(ast, timer=False)
         do_c_pickle(ast, timer=False)
 
-@unittest.skip('WIP')
+#@unittest.skip('WIP')
 class TestPickleCompleteAST(unittest.TestCase):
     def test(self):
         config = os.path.join(MooseDocs.MOOSE_DIR, 'test', 'doc', 'config.yml')
-        translator, root = common.load_config(config)
-        translator.init(root)
+        translator, _ = common.load_config(config)
+        translator.init()
 
         start = time.time()
-        for node in anytree.search.findall(root, filter_=lambda n: isinstance(n, page.MarkdownNode)):
-            ast = node.tokenize()
+        for node in anytree.search.findall(translator.root,
+                                           filter_=lambda n: isinstance(n, page.MarkdownNode)):
+            ast = translator.reader.build(node.read())
         end = time.time()
         print 'NO PICKLE:', end-start
 
         start = time.time()
-        for node in anytree.search.findall(root, filter_=lambda n: isinstance(n, page.MarkdownNode)):
-            ast = node.tokenize()
+        for node in anytree.search.findall(translator.root,
+                                           filter_=lambda n: isinstance(n, page.MarkdownNode)):
+            ast = translator.reader.build(node.read())
             do_c_pickle(ast, timer=False)
         end = time.time()
         print 'PICKLE:', end-start

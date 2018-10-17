@@ -10,9 +10,15 @@ def make_extension(**kwargs):
     return AlertExtension(**kwargs)
 
 class AlertToken(tokens.Token):
+    PROPERTIES = [Property('brand', ptype=unicode, required=True)]
+
+class AlertTitle(tokens.Token):
     PROPERTIES = [Property('brand', ptype=unicode, required=True),
-                  Property('prefix', default=True, ptype=bool),
-                  Property('title', ptype=tokens.Token)]
+                  Property('prefix', default=True, ptype=bool)]
+
+class AlertContent(tokens.Token):
+    PROPERTIES = [Property('brand', ptype=unicode, required=True),
+                  Property('icon', ptype=bool, default=True)]
 
 class AlertExtension(command.CommandExtension):
     """
@@ -28,8 +34,10 @@ class AlertExtension(command.CommandExtension):
 
     def extend(self, reader, renderer):
         self.requires(command)
-        self.addCommand(AlertCommand())
+        self.addCommand(reader, AlertCommand())
         renderer.add(AlertToken, RenderAlertToken())
+        renderer.add(AlertTitle, RenderAlertTitle())
+        renderer.add(AlertContent, RenderAlertContent())
 
 class AlertCommand(command.CommandComponent):
     COMMAND = 'alert'
@@ -40,34 +48,63 @@ class AlertCommand(command.CommandComponent):
         settings = command.CommandComponent.defaultSettings()
         settings['title'] = (None, "The optional alert title.")
         settings['prefix'] = (None, "Enable/disable the title being prefixed with the alert brand.")
+        settings['icon'] = (True, "Enable/disable the icon.")
         return settings
 
-    def createToken(self, info, parent):
+    def createToken(self, parent, info, page):
         title = self.settings.pop('title', None)
         brand = info['subcommand']
-
-        if title:
-            title_root = tokens.Token(None)
-            self.reader.parse(title_root, title, MooseDocs.INLINE)
-        else:
-            title_root = None
 
         if self.settings['prefix'] is not None:
             prefix = self.settings['prefix']
         else:
             prefix = self.extension.get('use-title-prefix', True)
 
+        #return AlertToken(parent, brand=brand, prefix=prefix, icon=self.settings['icon'])
+        alert_token = AlertToken(parent, brand=brand)
+        title_token = AlertTitle(alert_token, brand=brand, prefix=prefix)
 
+        if title:
+            self.reader.tokenize(title_token, title, page, MooseDocs.INLINE)
 
-        return AlertToken(parent, brand=brand, prefix=prefix, title=title_root)
+        return AlertContent(alert_token, brand=brand, icon=self.settings['icon'])
+
 
 class RenderAlertToken(components.RenderComponent):
 
-    def createTitle(self, parent, token):
+
+    def createHTML(self, parent, token, page):
+        div = html.Tag(parent, 'div', class_='moose-alert moose-alert-{}'.format(token.brand))
+        content = html.Tag(div, 'div', class_='moose-alert-content')
+        return content
+
+    def createMaterialize(self, parent, token, page):
+        return html.Tag(parent, 'div', class_='card moose-alert moose-alert-{}'.format(token.brand))
+
+    def createLatex(self, parent, token, page):
+        pass
+
+class RenderAlertContent(components.RenderComponent):
+
+    def createMaterialize(self, parent, token, page):
+
+        card_content = html.Tag(parent, 'div', class_='card-content')
+        content = html.Tag(card_content, 'div', class_='moose-alert-content')
+
+        if token.icon and (token.brand == 'construction'):
+            src = os.path.relpath('media/under-construction.gif',
+                                  os.path.dirname(page.local))
+            html.Tag(content, 'img', class_='moose-alert-construction-img', src=src)
+
+        return html.Tag(content, 'p')
+
+class RenderAlertTitle(components.RenderComponent):
+
+    def createMaterialize(self, parent, token, page):
 
         title = None
-        if token.prefix or token.title:
-            title = html.Tag(parent, 'div', class_='moose-alert-title')
+        if token.prefix:# or token.title:
+            title = html.Tag(parent, 'div', class_='card-title moose-alert-title')
 
             prefix = None
             if token.prefix:
@@ -76,36 +113,7 @@ class RenderAlertToken(components.RenderComponent):
                     brand = u'under construction'
                 prefix = html.Tag(title, 'span', string=brand, class_='moose-alert-title-brand')
 
-            if token.title:
-                if prefix:
-                    prefix(0).content += u':'
+            if token.children and prefix:
+                prefix(0).content += u':'
 
-                self.translator.renderer.process(title, token.title)
         return title
-
-    def createHTML(self, token, parent):
-        div = html.Tag(parent, 'div', class_='moose-alert moose-alert-{}'.format(token.brand))
-        self.createTitle(div, token)
-        content = html.Tag(div, 'div', class_='moose-alert-content')
-        return content
-
-    def createMaterialize(self, token, parent):
-        card = html.Tag(parent, 'div', class_='card moose-alert moose-alert-{}'.format(token.brand))
-        card_content = html.Tag(card, 'div', class_='card-content')
-        title = self.createTitle(card_content, token)
-        if title:
-            title.addClass('card-title')
-        content = html.Tag(card_content, 'div', class_='moose-alert-content')
-
-        if token.brand == 'construction':
-            if self.translator.current:
-                src = os.path.relpath('media/under-construction.gif',
-                                      os.path.dirname(self.translator.current.local))
-            else:
-                src = '/media/under-construction.gif'
-            html.Tag(content, 'img', class_='moose-alert-construction-img', src=src)
-
-        return html.Tag(content, 'p')
-
-    def createLatex(self, token, parent):
-        pass

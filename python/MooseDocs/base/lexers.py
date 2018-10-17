@@ -9,7 +9,7 @@ import re
 
 import MooseDocs
 from MooseDocs import common
-from MooseDocs.tree import tokens
+from MooseDocs.tree import tokens, pages
 from MooseDocs.common import exceptions
 
 LOG = logging.getLogger(__name__)
@@ -41,10 +41,6 @@ class Grammar(object):
     applied to the Lexer object and the associated regular expression that define the
     text associated with the Token object.
     """
-
-    #: Container for information required for creating a Token object.
-   # Pattern = collections.namedtuple('Pattern', 'name regex function')
-
     def __init__(self):
         self.__patterns = common.Storage(Pattern)
 
@@ -111,6 +107,7 @@ class LexerInformation(object):
         match[re.Match]: The regex match object from which a Token object is to be created.
         pattern[Grammar.Pattern]: Grammar pattern definition, see Grammar.py.
         line[int]: Current line number in supplied parsed text.
+        page[page.PageBase]: page node for processing multi-page input
     """
     def __init__(self, match=None, pattern=None, line=None):
         self.__match = dict()
@@ -199,7 +196,7 @@ class Lexer(object):
     def __init__(self):
         pass
 
-    def tokenize(self, parent, grammar, text, line=1):
+    def tokenize(self, parent, grammar, text, page, line=1):
         """
         Perform tokenization of the supplied text.
 
@@ -216,7 +213,10 @@ class Lexer(object):
               TokenizeException also contains information about the error, via a LexerInformation
               object to improve error reports.
         """
-        common.check_type('text', text, unicode, exc=exceptions.TokenizeException)
+        if MooseDocs.LOG_LEVEL == logging.DEBUG:
+            common.check_type('text', text, unicode, exc=exceptions.TokenizeException)
+            common.check_type('page', page, pages.Page, exc=exceptions.TokenizeException)
+            common.check_type('line', line, int, exc=exceptions.TokenizeException)
 
         n = len(text)
         pos = 0
@@ -227,7 +227,7 @@ class Lexer(object):
                 if match:
                     info = LexerInformation(match, pattern, line)
                     try:
-                        obj = self.buildObject(parent, pattern, info)
+                        obj = self.buildObject(parent, pattern, info, page)
                     except Exception as e: #pylint: disable=broad-except
                         obj = tokens.ExceptionToken(parent,
                                                     info=info,
@@ -249,14 +249,14 @@ class Lexer(object):
             msg = u'Unprocessed text exists.'
             tokens.ErrorToken(parent, info=info, message=msg)
 
-    def buildObject(self, parent, pattern, info): #pylint: disable=no-self-use
+    def buildObject(self, parent, pattern, info, page): #pylint: disable=no-self-use
         """
         Return a token object for the given lexer information.
         """
-        obj = pattern.function(info, parent)
-        if MooseDocs.LOG_LEVEL == logging.DEBUG:
-            common.check_type('obj', obj, (tokens.Token, type(None)),
-                              exc=exceptions.TokenizeException)
+        obj = pattern.function(parent, info, page)
+        #if MooseDocs.LOG_LEVEL == logging.DEBUG:
+        #    common.check_type('obj', obj, (tokens.Token, type(None)),
+        #                      exc=exceptions.TokenizeException)
         return obj
 
 class RecursiveLexer(Lexer):
@@ -303,7 +303,7 @@ class RecursiveLexer(Lexer):
         """
         self.grammar(group).add(*args)
 
-    def buildObject(self, parent, pattern, info):
+    def buildObject(self, parent, pattern, info, page):
         """
         Override the Lexer.buildObject method to recursively tokenize base on group names.
         """
@@ -311,12 +311,12 @@ class RecursiveLexer(Lexer):
             common.check_type('parent', parent, tokens.Token, exc=exceptions.TokenizeException)
             common.check_type('info', info, LexerInformation, exc=exceptions.TokenizeException)
 
-        obj = super(RecursiveLexer, self).buildObject(parent, pattern, info)
+        obj = super(RecursiveLexer, self).buildObject(parent, pattern, info, page)
 
         if (obj is not None) and (obj is not parent) and obj.recursive:
             for key, grammar in self._grammars.iteritems():
                 if key in info.keys():
                     text = info[key]
                     if text is not None:
-                        self.tokenize(obj, grammar, text, info.line)
+                        self.tokenize(obj, grammar, text, page, info.line)
         return obj

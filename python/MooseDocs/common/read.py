@@ -18,10 +18,6 @@ def read(filename):
     """
     with codecs.open(filename, encoding='utf-8') as fid:
         content = fid.read()
-
-    if filename.endswith(('.h', '.C')):
-        content = re.sub(r'^//\*', '//', content, flags=re.MULTILINE|re.UNICODE)
-
     return content
 
 def write(filename, content):

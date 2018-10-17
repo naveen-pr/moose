@@ -14,7 +14,7 @@ import mooseutils
 
 from MooseDocs import common
 from MooseDocs.common import exceptions
-from MooseDocs.tree.base import Property, NodeBase
+from MooseDocs.tree.base import Property, NodeBase, to_json
 
 LOG = logging.getLogger(__name__)
 
@@ -26,9 +26,8 @@ class Token(NodeBase):
         *args, **kwarg: (Optional) All arguments and key, value pairs supplied are stored in the
                         settings property and may be retrieved via the various access methods.
     """
-    PROPERTIES = [Property('recursive', default=True), # TODO: Can this go away?
+    PROPERTIES = [Property('recursive', default=True, ptype=bool),
                   Property('string', ptype=unicode)]
-                  #Property('info')] # TODO: use property, which should work with property override
 
     def __init__(self, parent=None, name=None, **kwargs):
         self._info = kwargs.pop('info', None)
@@ -51,6 +50,16 @@ class Token(NodeBase):
     def info(self, value):
         self._info = value
 
+    def text(self):
+        """
+        Convert String objects into a single string.
+        """
+        strings = []
+        for node in anytree.PreOrderIter(self):
+            if isinstance(node, String) and not node.hide:
+                strings.append(node.content)
+        return u' '.join(strings)
+
     def write(self, _raw=False): #pylint: disable=arguments-differ
         """
         Return a dict() appropriate for JSON output.
@@ -58,41 +67,7 @@ class Token(NodeBase):
         Inputs:
             _raw[bool]: An internal flag for skipping json conversion while building containers
         """
-        item = collections.OrderedDict()
-        item['type'] = self.__class__.__name__
-        item['name'] = self.name
-        item['children'] = list()
-
-        properties = dict()
-        for key, value in self._NodeBase__properties.iteritems():
-            properties[key] = value
-        item['properties'] = properties
-
-        attributes = dict()
-        for key, value in self._NodeBase__attributes.iteritems():
-            attributes[key] = value
-        item['attributes'] = attributes
-
-        for child in self.children:
-            item['children'].append(child.write(_raw=True))
-
-        if _raw:
-            return item
-        return json.dumps(item, indent=2, sort_keys=True)
-
-class CountToken(Token):
-    """
-    Token that maintains counts based on prefix, the Translator clears the counts prior to building.
-    """
-    PROPERTIES = [Property('prefix', ptype=unicode),
-                  Property('number', ptype=int)]
-    COUNTS = collections.defaultdict(int)
-    def __init__(self, *args, **kwargs):
-        Token.__init__(self, *args, **kwargs)
-
-        if self.prefix is not None:
-            CountToken.COUNTS[self.prefix] += 1
-            self.number = CountToken.COUNTS[self.prefix]
+        return self.to_json(self)
 
 class Section(Token):
     pass
@@ -130,7 +105,6 @@ class ExceptionToken(ErrorToken):
         out = ErrorToken.report(self, current)
         trace = mooseutils.colorText(self.traceback, 'GREY')
         return u'{}\n{}'.format(out, trace)
-
 
 class Word(String):
     """
@@ -185,7 +159,7 @@ class Heading(Token):
 
         id_ = self.get('id', None)
         if id_:
-            Shortcut(self.root, key=id_, link=u'#{}'.format(id_), token=self)
+            Shortcut(self.root, key=id_, link=u'#{}'.format(id_))
 
 class Paragraph(Token):
     """
@@ -213,14 +187,14 @@ class ListItem(Token):
         Token.__init__(self, *args, **kwargs)
         if not isinstance(self.parent, (OrderedList, UnorderedList)):
             raise exceptions.MooseDocsException("A 'ListItem' must have a 'OrderedList' or " \
-                                                "'UnorderedList' parent.")
+                                               "'UnorderedList' parent.")
 
 class Link(Token):
     """
     Token for urls.
     """
     PROPERTIES = [Property('url', required=True, ptype=unicode),
-                  Property('tooltip', default=True)]
+                  Property('tooltip', default=True, ptype=bool)]
 
 class Shortcut(Token):
     """

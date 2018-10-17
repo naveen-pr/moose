@@ -1,5 +1,6 @@
 """Defines the MooseDocs build command."""
 import os
+import sys
 import multiprocessing
 import logging
 import subprocess
@@ -12,7 +13,7 @@ import mooseutils
 
 import MooseDocs
 from MooseDocs import common
-from MooseDocs.tree import page
+from MooseDocs.tree import pages
 from check import check
 
 def command_line_options(subparser, parent):
@@ -70,8 +71,16 @@ class MooseDocsWatcher(livereload.watcher.Watcher):
         self._translator = translator
 
         for node in anytree.PreOrderIter(self._translator.root):
-            if isinstance(node, page.FileNode):
-                self.watch(node.source, node.build, delay=2)
+            self.watch(node.source, self.build, delay=2)
+
+    def build(self):
+        func = lambda n: n.source == self.filepath
+        nodes = [anytree.search.find(self._translator.root, filter_=func)]
+        if nodes[0] and node[0].dependencies:
+            for node in anytree.PreOrderIter(self._translator.root):
+                if node.fullpath in nodes[0].dependencies:
+                    nodes.append(node)
+            self._translator.execute(num_threads=1, nodes=nodes)
 
     def execute(self):
         """
@@ -79,38 +88,39 @@ class MooseDocsWatcher(livereload.watcher.Watcher):
         """
         self._translator.execute(self._options.num_threads)
 
-    def examine(self):
-        """
-        Investigate directories for new files and add them to the tree if found.
 
-        TODO: Remove nodes if page is deleted.
-        TODO: Handle !include (see extensions.include.py for more information).
-        """
-        for node in anytree.PreOrderIter(self._translator.root):
+    #def examine(self):
+    #    """
+    #    Investigate directories for new files and add them to the tree if found.
 
-            # Only perform check on valid directories
-            if not isinstance(node, page.DirectoryNode) or not os.path.exists(node.source):
-                continue
+    #    TODO: Remove nodes if page is deleted.
+    #    TODO: Handle !include (see extensions.include.py for more information).
+    #    """
+    #    for node in anytree.PreOrderIter(self._translator.root):
 
-            # Build map of child pages for the directory
-            children = {child.name:child for child in node.children \
-                        if isinstance(child, page.FileNode)}
+    #        # Only perform check on valid directories
+    #        if not isinstance(node, pages.DirectoryNode) or not os.path.exists(node.source):
+    #            continue
 
-            # Compare the list of files in the directory with those tracked by MooseDocs
-            for filename in os.listdir(node.source):  #pylint: disable=no-member
-                if filename.endswith(MooseDocs.FILE_EXT) and not filename.startswith('.'):
-                    if filename not in children:
-                        source = os.path.join(node.source, filename)
-                        if filename.endswith('.md'):
-                            new = page.MarkdownNode(node, source=source)
-                        else:
-                            new = page.FileNode(node, source=source) #pylint: disable=redefined-variable-type
-                        new.base = self._options.destination
-                        self.watch(new.source, new.build, delay=2) #pylint: disable=no-member
-                        new.init(self._translator)
-                        new.build()
+    #        # Build map of child pages for the directory
+    #        children = {child.name:child for child in node.children \
+    #                    if isinstance(child, pages.FileNode)}
 
-        return super(MooseDocsWatcher, self).examine()
+    #        # Compare the list of files in the directory with those tracked by MooseDocs
+    #        for filename in os.listdir(node.source):  #pylint: disable=no-member
+    #            if filename.endswith(MooseDocs.FILE_EXT) and not filename.startswith('.'):
+    #                if filename not in children:
+    #                    source = os.path.join(node.source, filename)
+    #                    if filename.endswith('.md'):
+    #                        new = pages.MarkdownNode(node, source=source)
+    #                    else:
+    #                        new = pages.FileNode(node, source=source) #pylint: disable=redefined-variable-type
+    #                    new.base = self._options.destination
+    #                    self.watch(new.source, new.build, delay=2) #pylint: disable=no-member
+    #                    new.init(self._translator)
+    #                    new.build()
+
+    #    return super(MooseDocsWatcher, self).examine()
 
 def _init_large_media():
     """Check submodule for large_media."""
@@ -151,6 +161,7 @@ def main(options):
     # Dump page tree
     if options.dump:
         print translator.root
+        sys.exit()
 
     # Clean when --files is NOT used or when --clean is used with --files.
     if ((options.files == []) or (options.files != [] and options.clean)) \
@@ -165,9 +176,10 @@ def main(options):
 
     # Perform build
     if options.files:
+        nodes = []
         for filename in options.files:
-            node = translator.root.findall(filename)[0]
-            node.build()
+            nodes += common.find_pages(translator.root, filename)
+        translator.execute(options.num_threads, nodes)
     else:
         translator.execute(options.num_threads)
 

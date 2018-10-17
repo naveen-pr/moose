@@ -9,6 +9,13 @@ import exceptions
 SETTINGS_RE = re.compile(r'(?P<key>[^\s=]+)=(?P<value>.*?)(?=(?:\s[^\s=]+=|$))',
                          flags=re.MULTILINE|re.UNICODE)
 
+def get_settings_as_dict(settings):
+    """Return a dict() of the settings without the description."""
+    output = dict()
+    for key, value in settings.iteritems():
+        output[key] = value[0]
+    return output
+
 def match_settings(known, raw):
     """
     Parses a raw string for key, value pairs separated by an equal sign.

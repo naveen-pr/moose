@@ -35,14 +35,15 @@ class BibtexExtension(command.CommandExtension):
     def __init__(self, *args, **kwargs):
         command.CommandExtension.__init__(self, *args, **kwargs)
 
-        self.__database = BibliographyData()
+        self.__database = None
         self.__citations = set()
 
-    def init(self, translator):
-        command.CommandExtension.init(self, translator)
+    def preExecute(self, root):
+
+        self.__database = BibliographyData()
 
         bib_files = []
-        for node in anytree.PreOrderIter(self.translator.root):
+        for node in anytree.PreOrderIter(root):
             if node.source.endswith('.bib'):
                 bib_files.append(node.source)
 
@@ -71,7 +72,7 @@ class BibtexExtension(command.CommandExtension):
     def extend(self, reader, renderer):
         self.requires(command)
 
-        self.addCommand(BibtexCommand())
+        self.addCommand(reader, BibtexCommand())
 
         reader.addInline(BibtexReferenceComponent(), location='>Format')
 
@@ -92,7 +93,7 @@ class BibtexReferenceComponent(components.TokenComponent):
                     r'\]',                         # closing ]
                     flags=re.UNICODE)
 
-    def createToken(self, info, parent):
+    def createToken(self, parent, info, page):
         keys = [key.strip() for key in info['keys'].split(',')]
         BibtexCite(parent, keys=keys, cite=info['cite'])
         return parent
@@ -109,16 +110,16 @@ class BibtexCommand(command.CommandComponent):
         config['title-level'] = (2, "The heading level for the section title for the references.")
         return config
 
-    def createToken(self, token, parent): #pylint: disable=unused-argument
+    def createToken(self, parent, token, page): #pylint: disable=unused-argument
         if self.settings['title']:
             h = tokens.Heading(parent, level=self.settings['title-level'])
-            self.translator.reader.parse(h, self.settings['title'], MooseDocs.INLINE)
+            self.reader.tokenize(h, self.settings['title'], page, MooseDocs.INLINE)
         BibtexBibliography(parent, style=self.settings['style'])
         return parent
 
 class RenderBibtexCite(components.RenderComponent):
 
-    def createHTML(self, token, parent):
+    def createHTML(self, parent, token, page):
 
         if token.cite == 'nocite':
             return parent
@@ -184,11 +185,12 @@ class RenderBibtexCite(components.RenderComponent):
 
         return parent
 
-    def createMaterialize(self, token, parent):
-        self.createHTML(token, parent)
+    def createMaterialize(self, parent, token, page):
+        self.createHTML(parent, token, page)
 
 class RenderBibtexBibliography(components.RenderComponent):
-    def createHTML(self, token, parent):
+    def createHTML(self, parent, token, page):
+
 
         try:
             style = find_plugin('pybtex.style.formatting', token.style)
@@ -213,8 +215,10 @@ class RenderBibtexBibliography(components.RenderComponent):
 
         return ol
 
-    def createMaterialize(self, token, parent):
-        ol = self.createHTML(token, parent)
+    def createMaterialize(self, parent, token, page):
+        return parent
+
+        ol = self.createHTML(parent, token, page)
 
         for child in ol.children:
             key = child['id']

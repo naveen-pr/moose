@@ -2,7 +2,7 @@
 #pylint: disable=missing-docstring
 
 import unittest
-from MooseDocs.tree import page
+from MooseDocs.tree import pages
 from MooseDocs.common import exceptions, mixins
 from MooseDocs.base import Translator, MarkdownReader, HTMLRenderer
 
@@ -74,7 +74,7 @@ class TestTranslatorObject(unittest.TestCase):
         """
         Test correct use.
         """
-        t = Translator(page.PageNodeBase(None), MarkdownReader(), HTMLRenderer(), [])
+        t = Translator(pages.PageNodeBase(None), MarkdownReader(), HTMLRenderer(), [])
         obj = mixins.TranslatorObject()
         self.assertFalse(obj.initialized())
         obj.init(t)
@@ -85,7 +85,7 @@ class TestTranslatorObject(unittest.TestCase):
         """
         Test Exceptions.
         """
-        t = Translator(page.PageNodeBase(None), MarkdownReader(), HTMLRenderer(), [])
+        t = Translator(pages.PageNodeBase(None), MarkdownReader(), HTMLRenderer(), [])
         obj = mixins.TranslatorObject()
         with self.assertRaises(exceptions.MooseDocsException) as e:
             obj.init('')

@@ -17,11 +17,11 @@ class ParComponent(components.RenderComponent):
         self.count = 0
     def reinit(self):
         self.count += 1
-    def createHTML(self, token, parent):
+    def createHTML(self, parent, token, page):
         return html.Tag(parent, 'p')
 
 class StringComponent(components.RenderComponent):
-    def createHTML(self, token, parent):
+    def createHTML(self, parent, token, page):
         return html.String(parent, content=token.content)
 
 class BadComponent(components.RenderComponent):

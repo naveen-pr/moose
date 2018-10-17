@@ -6,16 +6,6 @@
     input = test_katex.py
     requirement = "MooseDocs shall include an extension for latex equation support."
   []
-  [include]
-    type = PythonUnitTest
-    input = test_include.py
-    requirement = "MooseDocs shall include an extension for including files with other files."
-  []
-  [media]
-    type = PythonUnitTest
-    input = test_media.py
-    requirement = "MooseDocs shall include an extension for media support."
-  []
   [command]
     type = PythonUnitTest
     input = test_command.py

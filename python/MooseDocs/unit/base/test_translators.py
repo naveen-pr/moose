@@ -3,7 +3,7 @@
 Testing for Translator object.
 """
 import unittest
-from MooseDocs.tree import page
+from MooseDocs.tree import pages
 from MooseDocs.base import Translator, MarkdownReader, HTMLRenderer
 from MooseDocs.common import exceptions
 
@@ -15,7 +15,7 @@ class TestTranslator(unittest.TestCase):
         """
         Test most basic construction.
         """
-        content = page.PageNodeBase(None)
+        content = pages.PageNodeBase(None)
         translator = Translator(content, MarkdownReader(), HTMLRenderer(), [])
         self.assertIsInstance(translator.reader, MarkdownReader)
         self.assertIsInstance(translator.renderer, HTMLRenderer)
@@ -31,7 +31,7 @@ class TestTranslator(unittest.TestCase):
         self.assertIn("The argument 'content' must be", e.exception.message)
 
         # Reader
-        content = page.PageNodeBase(None)
+        content = pages.PageNodeBase(None)
         with self.assertRaises(exceptions.MooseDocsException) as e:
             Translator(content, 'foo', HTMLRenderer(), [])
         self.assertIn("The argument 'reader' must be", e.exception.message)

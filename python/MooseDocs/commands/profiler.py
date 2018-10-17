@@ -9,7 +9,7 @@ import StringIO
 import anytree
 
 from MooseDocs import common
-from MooseDocs.tree import page
+from MooseDocs.tree import pages
 
 def command_line_options(subparser, parent):
     """Define the 'profile' command."""

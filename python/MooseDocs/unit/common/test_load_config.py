@@ -3,7 +3,7 @@ import unittest
 import mock
 
 import MooseDocs
-from MooseDocs.tree import page
+from MooseDocs.tree import pages
 from MooseDocs.common import exceptions
 from MooseDocs.common.load_config import _yaml_load_extensions, _yaml_load_object, DEFAULT_EXTENSIONS
 
@@ -58,14 +58,14 @@ class TestLoadRenderer(unittest.TestCase):
 
 class TestLoadTranslator(unittest.TestCase):
     def testEmpty(self):
-        content = page.PageNodeBase(None)
+        content = pages.PageNodeBase(None)
         reader = MooseDocs.base.MarkdownReader()
         renderer = MooseDocs.base.HTMLRenderer()
         obj = _yaml_load_object('Translator', dict(), 'MooseDocs.base.Translator', content, reader, renderer, [])
         self.assertIsInstance(obj, MooseDocs.base.Translator)
 
     def testNode(self):
-        content = page.PageNodeBase(None)
+        content = pages.PageNodeBase(None)
         reader = MooseDocs.base.MarkdownReader()
         renderer = MooseDocs.base.HTMLRenderer()
         config = dict(Translator=dict(type='MooseDocs.base.Translator'))

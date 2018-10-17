@@ -26,8 +26,7 @@ Renderer:
     google_analytics: True
 
 Extensions:
-    appsyntax:
-        type: MooseDocs.extensions.appsyntax
+    MooseDocs.extensions.appsyntax:
         executable: ${MOOSE_DIR}/modules/combined
         hide:
             framework: !include framework/doc/hidden.yml
@@ -67,14 +66,11 @@ Extensions:
             stochastic_tools: !include modules/stochastic_tools/doc/remove.yml
             #tensor_mechanics: !include modules/tensor_mechanics/doc/remove.yml
             #xfem: !include modules/xfem/doc/remove.yml
-    globals:
-        type: MooseDocs.extensions.panoptic
+    MooseDocs.extensions.panoptic:
         shortcuts: !include framework/doc/globals.yml
-    acronyms:
-        type: MooseDocs.extensions.acronym
+    MooseDocs.extensions.acronym:
         acronyms: !include framework/doc/acronyms.yml
-    sqa:
-        type: MooseDocs.extensions.sqa
+    MooseDocs.extensions.sqa:
         requirement-groups:
             dgkernels: DGKernel Objects
             interfacekernels: InterfaceKernel Objects

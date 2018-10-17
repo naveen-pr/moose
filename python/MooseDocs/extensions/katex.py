@@ -1,25 +1,27 @@
 #pylint: disable=missing-docstring
 import re
 import uuid
-
+import anytree
 from MooseDocs.base import components
 from MooseDocs.common import exceptions
 from MooseDocs.tree import tokens, html, latex
 from MooseDocs.tree.base import Property
+from MooseDocs.extensions import floats
 
 def make_extension(**kwargs):
     """Create an instance of the Extension object."""
     return KatexExtension(**kwargs)
 
-class LatexBlockEquation(tokens.CountToken):
+class LatexBlockEquation(floats.CountToken):
     r"""
     Token for LaTeX block level equations (e.g., \begin{equation} ... \end{equation}.
     """
-    PROPERTIES = [Property('tex', required=True, ptype=str)]
+    PROPERTIES = [Property('tex', required=True, ptype=str),
+                  Property('label', ptype=unicode)]
 
-class LatexInlineEquation(LatexBlockEquation):
+class LatexInlineEquation(tokens.Token):
     """Token for inline equations."""
-    pass
+    PROPERTIES = [Property('tex', required=True, ptype=str)]
 
 class KatexExtension(components.Extension):
     """
@@ -36,11 +38,25 @@ class KatexExtension(components.Extension):
         """
         Add the necessary components for reading and rendering LaTeX.
         """
+        self.requires(floats)
         reader.addInline(KatexBlockEquationComponent(), location='_begin')
         reader.addInline(KatexInlineEquationComponent(), location='_begin')
 
         renderer.add(LatexBlockEquation, RenderLatexEquation())
         renderer.add(LatexInlineEquation, RenderLatexEquation())
+
+    def postTokenize(self, ast, page):
+        """
+        Update shortcut numbering.
+        """
+        labels = dict()
+        for node in anytree.PreOrderIter(ast, filter_=lambda n: isinstance(n, LatexBlockEquation)):
+            labels[node.label] = node.number
+
+        for node in anytree.PreOrderIter(ast, filter_=lambda n: isinstance(n, tokens.Shortcut)):
+            key = labels.get(node.key, None)
+            if key:
+                tokens.String(node, content = u'{} {}'.format(self.get('prefix'), key))
 
 class KatexBlockEquationComponent(components.TokenComponent):
     """
@@ -52,7 +68,7 @@ class KatexBlockEquationComponent(components.TokenComponent):
                     flags=re.DOTALL|re.MULTILINE|re.UNICODE)
     LABEL_RE = re.compile(r'\\label{(?P<id>.*?)}', flags=re.UNICODE)
 
-    def createToken(self, info, parent):
+    def createToken(self, parent, info, page):
         """Create a LatexBlockEquation token."""
 
         # Raw LaTeX appropriate for passing to KaTeX render method
@@ -74,10 +90,9 @@ class KatexBlockEquationComponent(components.TokenComponent):
             raise exceptions.TokenizeException(msg)
 
         elif label:
+            token.label = label.group('id')
             token.tex = token.tex.replace(label.group().encode('ascii'), '') #pylint: disable=attribute-defined-outside-init
-            tokens.Shortcut(parent.root, key=label.group('id'),
-                            link=u'#{}'.format(eq_id),
-                            string=u'{} {}'.format(prefix, token.number))
+            tokens.Shortcut(parent.root, key=token.label, link=u'#{}'.format(eq_id))
 
         return parent
 
@@ -85,7 +100,7 @@ class KatexInlineEquationComponent(components.TokenComponent):
     RE = re.compile(r'(?P<token>\$)(?=\S)(?P<equation>.*?)(?<=\S)(?:\1)',
                     flags=re.MULTILINE|re.DOTALL|re.DOTALL)
 
-    def createToken(self, info, parent):
+    def createToken(self, parent, info, page):
         """Create LatexInlineEquation"""
 
         # Raw LaTeX appropriate for passing to KaTeX render method
@@ -100,7 +115,7 @@ class KatexInlineEquationComponent(components.TokenComponent):
 
 class RenderLatexEquation(components.RenderComponent):
     """Render LatexBlockEquation and LatexInlineEquation tokens"""
-    def createHTML(self, token, parent): #pylint: disable=no-self-use
+    def createHTML(self, parent, token, page): #pylint: disable=no-self-use
 
         if isinstance(token, LatexInlineEquation):
             div = html.Tag(parent, 'span', class_='moose-katex-inline-equation', **token.attributes)
@@ -126,7 +141,7 @@ class RenderLatexEquation(components.RenderComponent):
 
         return parent
 
-    def createLatex(self, token, parent): #pylint: disable=no-self-use
+    def createLatex(self, parent, token, page): #pylint: disable=no-self-use
         if isinstance(token, LatexInlineEquation):
             latex.String(parent, content=u'${}$'.format(token.tex))
         else:

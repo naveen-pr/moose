@@ -12,9 +12,9 @@ LOG = logging.getLogger(__name__)
 
 # Set of extensions to load by default
 DEFAULT_EXTENSIONS = ['MooseDocs.extensions.core',
+                      'MooseDocs.extensions.floats',
                       'MooseDocs.extensions.command',
                       'MooseDocs.extensions.include',
-                      'MooseDocs.extensions.floats',
                       'MooseDocs.extensions.media',
                       'MooseDocs.extensions.listing',
                       'MooseDocs.extensions.table',
@@ -30,7 +30,7 @@ DEFAULT_EXTENSIONS = ['MooseDocs.extensions.core',
                       'MooseDocs.extensions.config',
                       'MooseDocs.extensions.materialicon',
                       'MooseDocs.extensions.acronym',
-                      'MooseDocs.extensions.contents',
+                      'MooseDocs.extensions.content',
                       'MooseDocs.extensions.plotly']
 
 DEFAULT_READER = 'MooseDocs.base.MarkdownReader'
@@ -43,10 +43,10 @@ def load_config(filename):
     """
     config = yaml_load(filename, root=MooseDocs.ROOT_DIR)
 
-    content = _yaml_load_content(config)
     extensions = _yaml_load_extensions(config)
     reader = _yaml_load_object('Reader', config, DEFAULT_READER)
     renderer = _yaml_load_object('Renderer', config, DEFAULT_RENDERER)
+    content = _yaml_load_content(config, reader.EXTENSIONS, renderer.EXTENSION)
     translator = _yaml_load_object('Translator', config, DEFAULT_TRANSLATOR,
                                    content, reader, renderer, extensions)
     return translator, config
@@ -110,14 +110,26 @@ def _yaml_load_extensions(config):
             ext_configs[ext] = dict()
 
     # Get configuration items from configuration
-    for key, value in options.iteritems():
-        if 'type' in value:
-            ext_type = value.pop('type')
-            if ext_type not in ext_configs:
-                ext_configs[ext_type] = dict()
-            ext_configs[ext_type].update(value)
+    for ext_type, settings in options.iteritems():
+        if 'type' in settings:
+            msg = "Using 'type' for the extensions is deprecated, the type should be supplied " \
+                  "as the key to the dictionary, rather than an arbitrary name."
+            LOG.warning(msg)
+            ext_type = settings.pop('type')
+
+        if ext_type not in ext_configs:
+            ext_configs[ext_type] = dict()
+
+        if isinstance(settings, dict):
+            ext_configs[ext_type].update(settings)
+
+        elif (isinstance(settings, str) and settings == 'default'):
+            continue
+
         else:
-            LOG.error("The section '%s' must contain a 'type' parameter.", key)
+            msg = "The supplied settings for the '%s' extension must be dict() or the 'default' " \
+                  "keyword should be used."
+            LOG.error(msg, ext_type)
 
     return load_extensions(ext_configs.keys(), ext_configs)
 
@@ -126,13 +138,13 @@ def _yaml_load_object(name, config, default, *args):
 
     options = config.get(name, dict())
     obj_type = options.pop('type', default)
-    try:
-        return eval(obj_type)(*args, **options)
-    except NameError:
-        msg = "ERROR: The %s block must contain a valid object name."
-        LOG.error(msg, name)
+    #try:
+    return eval(obj_type)(*args, **options)
+    #except NameError:
+    #    msg = "ERROR: The %s block must contain a valid object name."
+    #    LOG.error(msg, name)
 
-def _yaml_load_content(config):
+def _yaml_load_content(config, in_ext, out_ext):
     """Load the 'Content' section."""
 
     options = config.get('Content', None)
@@ -149,4 +161,4 @@ def _yaml_load_content(config):
             content = value.get('content', None)
             items.append(dict(root_dir=value['root_dir'], content=content))
 
-    return MooseDocs.tree.build_page_tree.doc_tree(items)
+    return MooseDocs.tree.build_page_tree.doc_tree(items, in_ext, out_ext)

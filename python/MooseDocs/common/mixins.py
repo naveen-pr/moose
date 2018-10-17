@@ -2,6 +2,7 @@
 Contains base classes intended to be used internal to this module.
 """
 import uuid
+import copy
 import MooseDocs
 from MooseDocs import common
 from MooseDocs.common import exceptions
@@ -28,6 +29,11 @@ class ConfigObject(object):
             raise exceptions.MooseDocsException(msg, type(self.__config))
         self.update(**kwargs)
 
+        # Stores the configuration that was established upon object creation, this allows the
+        # config extension to mess with configuration items during execute but then restore
+        # prior to processing the next page.
+        self.__initial_config = copy.copy(self.__config)
+
     def update(self, **kwargs):
         """
         Update the configuration with the supplied key-value pairs.
@@ -47,12 +53,17 @@ class ConfigObject(object):
                 msg += '\n{}{}'.format(' '*4, key)
             raise exceptions.MooseDocsException(msg.format(type(self)))
 
-    def getConfig(self):
+    def resetConfig(self):
         """
-        Return a dict() of the key-value pairs for the supplied configuration objects, this method
-        removes the description.
+        Reset configuration to original state.
         """
-        return {key:value[0] for key, value in self.__config.iteritems()}
+        self.__config = copy.copy(self.__initial_config)
+
+    def keys(self):
+        """
+        Return the available configuration items.
+        """
+        return self.__config.keys()
 
     def __getitem__(self, name):
         """
@@ -69,51 +80,67 @@ class ConfigObject(object):
         else:
             return self.__config[name][0]
 
-class TranslatorObject(object):
+class ReaderObject(object):
     """
-    Class for objects that require a Translator object be created via an init method.
+    Basic functions for objects that have a Reader object.
     """
     def __init__(self):
-        self.__translator = None
+        self.__reader = None
 
-    def init(self, translator):
-        """
-        Called by Translator object, this allows the objects to be
-        created independently then passed into the translator, which then
-        calls this method to provide access to translator for when the actual
-        tokenize and render commands are called.
-        """
+    def init(self, reader):
+        """Initialize the class with the Reader object."""
         if self.initialized():
             msg = "The {} object has already been initialized, this method should not " \
                   "be called twice."
             raise MooseDocs.common.exceptions.MooseDocsException(msg, type(self))
 
-        common.check_type('translator', translator, MooseDocs.base.translators.Translator)
-        self.__translator = translator
+        common.check_type('reader', reader, MooseDocs.base.readers.Reader)
+        self.__reader = reader
 
     def initialized(self):
-        """
-        Returns True if the init method was called.
-        """
-        return self.__translator is not None
+        """Returns True if the init method was called."""
+        return self.__reader is not None
 
     @property
-    def translator(self):
-        """
-        Returns the Translator object as property.
-        """
-        if self.__translator is None:
+    def reader(self):
+        """Return the Reader object."""
+        if self.__reader is None:
+            msg = "The init() method of the {} object must be called prior to accessing the " \
+                  "reader property."
+            raise MooseDocs.common.exceptions.MooseDocsException(msg, type(self))
+
+        return self.__reader
+
+class RendererObject(object):
+    """
+    Basic functions for objects that have a Renderer object.
+    """
+    def __init__(self):
+        self.__renderer = None
+
+    def init(self, renderer):
+        """Initialize the class with the Renderer object."""
+        if self.initialized():
+            msg = "The {} object has already been initialized, this method should not " \
+                  "be called twice."
+            raise MooseDocs.common.exceptions.MooseDocsException(msg, type(self))
+
+        common.check_type('renderer', renderer, MooseDocs.base.renderers.Renderer)
+        self.__renderer = renderer
+
+    def initialized(self):
+        """Returns True if the init method was called."""
+        return self.__renderer is not None
+
+    @property
+    def renderer(self):
+        """Return the Renderer object."""
+        if self.__renderer is None:
             msg = "The init() method of the {} object must be called prior to accessing this " \
                   "property."
             raise MooseDocs.common.exceptions.MooseDocsException(msg, type(self))
-        return self.__translator
 
-    def reinit(self):
-        """
-        Called by the Translator prior to converting, this allows for state to be reset when using
-        livereload.
-        """
-        pass
+        return self.__renderer
 
 class ComponentObject(object):
     """

@@ -12,7 +12,6 @@ from MooseDocs.tree.base import Property
 def make_extension(**kwargs):
     return TableExtension(**kwargs)
 
-#TODO: Re-factor into a single Table token
 class Table(tokens.Token):
     pass
 
@@ -32,6 +31,7 @@ class TableHeaderItem(TableItem):
     pass
 
 def builder(rows, headings=None):
+    """Helper for creating tokens for a table."""
     node = Table()
     if headings:
         thead = TableHead(node)
@@ -61,7 +61,7 @@ class TableExtension(command.CommandExtension):
 
     def extend(self, reader, renderer):
 
-        self.addCommand(TableCommandComponent())
+        self.addCommand(reader, TableCommandComponent())
 
         reader.addBlock(TableComponent(), "<Paragraph")
 
@@ -83,31 +83,29 @@ class TableCommandComponent(command.CommandComponent):
         settings['prefix'] = (None, "Text to include prior to the included text.")
         return settings
 
-    def createToken(self, info, parent):
+    def createToken(self, parent, info, page):
 
         content = info['block'] if 'block' in info else info['inline']
-        flt = floats.Float(parent, **self.attributes)
-        floats.add_caption(flt, self.extension, self.settings)
-        self.translator.reader.parse(flt, content, group=MooseDocs.BLOCK)
+        flt = floats.create_float(parent, self.extension, self.reader, page, self.settings)
+        self.reader.tokenize(flt, content, page, MooseDocs.BLOCK)
         return parent
-
 
 class TableComponent(components.TokenComponent):
     RE = re.compile(r'(?:\A|\n{2,})^(?P<table>\|.*?)(?=\Z|\n{2,})',
                     flags=re.MULTILINE|re.DOTALL|re.UNICODE)
     FORMAT_RE = re.compile(r'^(?P<format>\|[ \|:\-]+\|)$', flags=re.MULTILINE|re.UNICODE)
 
-    def createToken(self, match, parent):
+    def createToken(self, parent, info, page):
 
         try:
-            return self._createTable(match, parent)
+            return self._createTable(parent, info, page)
         except Exception as e:
             msg = 'Failed to build table, the syntax is likely not correct:\n'
             raise exceptions.TokenizeException(msg, e.message)
 
-    def _createTable(self, match, parent):
+    def _createTable(self, parent, info, page):
 
-        content = match['table']
+        content = info['table']
         table = Table(parent)
         head = None
         body = None
@@ -131,33 +129,32 @@ class TableComponent(components.TokenComponent):
                 else:
                     # TODO: warning/error
                     form[i] = 'left'
-                #print string, form[i]
 
         #TODO: check lengths of form, head, body
         if head:
             row = TableRow(TableHead(table))
             for i, h in enumerate(head):
                 hitem = TableHeaderItem(row, align=form[i])
-                self.reader.parse(hitem, h, MooseDocs.INLINE)
+                self.reader.tokenize(hitem, h, page, MooseDocs.INLINE)
 
         for line in body.splitlines():
             if line:
                 row = TableRow(TableBody(table))
                 for i, content in enumerate([item.strip() for item in line.split('|') if item]):
                     item = TableItem(row, align=form[i]) #pylint: disable=redefined-variable-type
-                    self.reader.parse(item, content, MooseDocs.INLINE)
+                    self.reader.tokenize(item, content, page, MooseDocs.INLINE)
 
         return table
 
 class RenderTable(components.RenderComponent):
-    def createHTML(self, token, parent): #pylint: disable=no-self-use
+    def createHTML(self, parent, token, page): #pylint: disable=no-self-use
         div = html.Tag(parent, 'div', **token.attributes)
         div.addClass('moose-table-div')
         tbl = html.Tag(div, 'table')
         return tbl
-    def createMaterialize(self, token, parent):
-        return self.createHTML(token, parent)
-    def createLatex(self, token, parent):
+    def createMaterialize(self, parent, token, page):
+        return self.createHTML(parent, token, page)
+    def createLatex(self, parent, token, page):
         pass
 
 class RenderTag(components.RenderComponent):
@@ -165,17 +162,17 @@ class RenderTag(components.RenderComponent):
         components.RenderComponent.__init__(self)
         self.__tag = tag
 
-    def createMaterialize(self, token, parent):
-        return self.createHTML(token, parent)
+    def createMaterialize(self, parent, token, page):
+        return self.createHTML(parent, token, page)
 
-    def createHTML(self, token, parent): #pylint: disable=unused-argument
+    def createHTML(self, parent, token, page): #pylint: disable=unused-argument
         return html.Tag(parent, self.__tag)
 
-    def createLatex(self, token, parent):
+    def createLatex(self, parent, token, page):
         pass
 
 class RenderItem(RenderTag):
-    def createHTML(self, token, parent):
-        tag = RenderTag.createHTML(self, token, parent)
+    def createHTML(self, parent, token, page):
+        tag = RenderTag.createHTML(self, parent, token, page)
         tag.addStyle('text-align:{}'.format(token.align))
         return tag

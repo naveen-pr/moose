@@ -45,7 +45,7 @@ class SQAExtension(command.CommandExtension):
         """Return the requirements dictionary."""
         return self.__requirements
 
-    def reinit(self):
+    def preExecute(self, root):
         """Reset counts."""
         self.__counts.clear()
 
@@ -57,27 +57,29 @@ class SQAExtension(command.CommandExtension):
     def extend(self, reader, renderer):
         self.requires(command, alert, floats, core, materialicon)
 
-        self.addCommand(SQATemplateLoadCommand())
-        self.addCommand(SQATemplateItemCommand())
-        self.addCommand(SQARequirementsCommand())
-        self.addCommand(SQADocumentItemCommand())
-        self.addCommand(SQACrossReferenceCommand())
-        self.addCommand(SQARequirementsMatrixCommand())
-        self.addCommand(SQAVerificationCommand())
+        self.addCommand(reader, SQATemplateLoadCommand())
+        self.addCommand(reader, SQATemplateItemCommand())
+        self.addCommand(reader, SQARequirementsCommand())
+        self.addCommand(reader, SQADocumentItemCommand())
+        self.addCommand(reader, SQACrossReferenceCommand())
+        self.addCommand(reader, SQARequirementsMatrixCommand())
+        self.addCommand(reader, SQAVerificationCommand())
 
         renderer.add(SQATemplateItem, RenderSQATemplateItem())
         renderer.add(SQARequirementMatrix, RenderSQARequirementMatrix())
         renderer.add(SQARequirementMatrixItem, RenderSQARequirementMatrixItem())
+        renderer.add(SQARequirementMatrixHeading, RenderSQARequirementMatrixHeading())
 
 class SQADocumentItem(tokens.Token):
     PROPERTIES = [tokens.Property('key', ptype=unicode, required=True)]
 
 class SQATemplateItem(tokens.Token):
     PROPERTIES = [tokens.Property('key', ptype=unicode, required=True),
-                  tokens.Property('heading', ptype=tokens.Token)]
+                  #tokens.Property('heading', ptype=tokens.Token)
+    ]
 
 class SQARequirementMatrix(tokens.OrderedList):
-    PROPERTIES = [tokens.Property('heading', ptype=tokens.Token)]
+    PROPERTIES = []#tokens.Property('heading', ptype=tokens.Token)]
 
 class SQAVandVMatrix(SQARequirementMatrix):
     pass
@@ -85,6 +87,10 @@ class SQAVandVMatrix(SQARequirementMatrix):
 class SQARequirementMatrixItem(tokens.ListItem):
     PROPERTIES = [tokens.Property('label', ptype=unicode, required=True),
                   tokens.Property('satisfied', ptype=bool, default=True)]
+
+class SQARequirementMatrixHeading(tokens.ListItem):
+    pass
+
 
 class SQAVandVMatrixItem(SQARequirementMatrixItem):
     pass
@@ -112,23 +118,25 @@ class SQARequirementsCommand(command.CommandComponent):
 
         return config
 
-    def createToken(self, info, parent):
+    def createToken(self, parent, info, page):
         group_map = self.extension.get('requirement-groups')
         for group, requirements in self.extension.requirements.iteritems():
             group = group_map.get(group, group.replace('_', ' ').title())
-            matrix = SQARequirementMatrix(parent,
-                                          heading=tokens.String(None, content=unicode(group)))
+
+            matrix = SQARequirementMatrix(parent)
+            SQARequirementMatrixHeading(matrix, string=unicode(group))
+
             for req in requirements:
-                self._addRequirement(matrix, req, requirements)
+                self._addRequirement(matrix, info, page, req, requirements)
 
         return parent
 
-    def _addRequirement(self, parent, req, requirements):
+    def _addRequirement(self, parent, info, page, req, requirements):
         item = SQARequirementMatrixItem(parent,
                                         label=unicode(req.label),
                                         satisfied=req.satisfied,
                                         id_=req.path)
-        self.translator.reader.parse(item, req.text)
+        self.reader.tokenize(item, req.text, page)
 
         if self.settings['link']:
             if self.settings['link-spec']:
@@ -138,16 +146,18 @@ class SQARequirementsCommand(command.CommandComponent):
                 with codecs.open(req.filename, encoding='utf-8') as fid:
                     content = fid.read()
 
-                floats.ModalLink(p, 'a', tooltip=False, url=u"#",
-                                 string=u"{}:{}".format(req.path, req.name),
-                                 title=tokens.String(None, content=unicode(req.filename)),
-                                 content=tokens.Code(None, language=u'text', code=content))
+                floats.create_modal_link(p,
+                                         url=u"#",
+                                         title=tokens.String(None, content=unicode(req.filename)),
+                                         content=tokens.Code(None, language=u'text', code=content),
+                                         string=u"{}:{}".format(req.path, req.name),
+                                         tooltip=False)
 
             if self.settings['link-design'] and req.design:
                 p = tokens.Paragraph(item, 'p')
                 tokens.String(p, content=u'Design: ')
                 for design in req.design:
-                    autolink.AutoShortcutLink(p, key=unicode(design))
+                    autolink.AutoLink(p, page=unicode(design))
 
             if self.settings['link-issues'] and req.issues:
                 p = tokens.Paragraph(item, 'p')
@@ -171,21 +181,20 @@ class SQACrossReferenceCommand(SQARequirementsCommand):
     COMMAND = 'sqa'
     SUBCOMMAND = 'cross-reference'
 
-    def createToken(self, info, parent):
+    def createToken(self, parent, info, page):
         design = collections.defaultdict(list)
         for requirements in self.extension.requirements.itervalues():
             for req in requirements:
                 for d in req.design:
-                    node = self.translator.current.findall(d)[0]
+                    node = common.find_page(page.root, d)
                     design[node].append(req)
 
         for node, requirements in design.iteritems():
-            link = autolink.AutoShortcutLink(None, key=unicode(node.fullpath))
-            link.info = info
-            matrix = SQARequirementMatrix(parent, heading=link)
-
+            matrix = SQARequirementMatrix(parent)#, heading=link)
+            heading = SQARequirementMatrixHeading(matrix)
+            autolink.AutoLink(heading, page=unicode(node.fullpath))
             for req in requirements:
-                self._addRequirement(matrix, req, requirements)
+                self._addRequirement(matrix, info, page, req, requirements)
 
         return parent
 
@@ -202,7 +211,7 @@ class SQARequirementsMatrixCommand(command.CommandComponent):
         config['heading'] = (None, "Requirement matrix heading.")
         return config
 
-    def createToken(self, info, parent):
+    def createToken(self, parent, info, page):
         content = info['block'] if 'block' in info else info['inline']
 
         if self.settings['prefix'] is None:
@@ -210,7 +219,7 @@ class SQARequirementsMatrixCommand(command.CommandComponent):
             raise exceptions.TokenizeException(msg)
 
         # Extract the unordered list
-        self.reader.parse(parent, content, MooseDocs.BLOCK)
+        self.reader.tokenize(parent, content, page, MooseDocs.BLOCK, info.line)
         ul = parent.children[-1]
         ul.parent = None
 
@@ -226,8 +235,8 @@ class SQARequirementsMatrixCommand(command.CommandComponent):
 
         heading = self.settings['heading']
         if heading is not None:
-            matrix.heading = tokens.Token(None) #pylint: disable=attribute-defined-outside-init
-            self.reader.parse(matrix.heading, heading, MooseDocs.INLINE)
+            head = SQARequirementMatrixHeading(matrix)
+            self.reader.tokenize(head, heading, page, MooseDocs.INLINE, info.line)
 
         for i, item in enumerate(ul.children):
             matrix_item = SQARequirementMatrixItem(matrix, label=u'{}.{:d}'.format(label, i))
@@ -246,7 +255,7 @@ class SQATemplateLoadCommand(command.CommandComponent):
         config['template'] = (None, "The name of the template to load.")
         return config
 
-    def createToken(self, info, parent):
+    def createToken(self, parent, info, page):
 
         #TODO: make root path a config item in extension
         location = os.path.join(MooseDocs.MOOSE_DIR, 'framework', 'doc', 'templates', 'sqa',
@@ -275,7 +284,7 @@ class SQATemplateLoadCommand(command.CommandComponent):
         content = re.sub(r'{{(?P<key>.*?)}}', sub, content)
 
         # Tokenize the template
-        self.translator.reader.parse(parent, content)
+        self.reader.tokenize(parent, content, page, line=info.line)
 
         return parent
 
@@ -292,7 +301,7 @@ class SQATemplateItemCommand(command.CommandComponent):
         config['required'] = (True, "The section is required.")
         return config
 
-    def createToken(self, info, parent):
+    def createToken(self, parent, info, page):
         key = self.settings['key']
         item = SQATemplateItem(parent, key=key)
 
@@ -300,7 +309,7 @@ class SQATemplateItemCommand(command.CommandComponent):
         if heading:
             item.heading = tokens.Heading(None, #pylint: disable=attribute-defined-outside-init
                                           level=int(self.settings['heading-level']), id_=key)
-            self.translator.reader.parse(item.heading, heading)
+            self.reader.tokenize(item.heading, heading, page, line=info.line)
 
         return item
 
@@ -314,7 +323,7 @@ class SQADocumentItemCommand(command.CommandComponent):
         config['key'] = (None, "The name of the template item which the content is to replace.")
         return config
 
-    def createToken(self, info, parent):
+    def createToken(self, parent, info, page):
         return SQADocumentItem(parent, key=self.settings['key'])
 
 class SQAVerificationCommand(command.CommandComponent):
@@ -326,44 +335,46 @@ class SQAVerificationCommand(command.CommandComponent):
         config = command.CommandComponent.defaultSettings()
         return config
 
-    def createToken(self, info, parent):
+    def createToken(self, parent, info, page):
 
         matrix = SQARequirementMatrix(parent)
         for requirements in self.extension.requirements.itervalues():
             for req in requirements:
                 if getattr(req, info['subcommand']):
-                    self._addRequirement(matrix, req)
+                    self._addRequirement(matrix, info, page, req)
 
         return parent
 
-    def _addRequirement(self, parent, req):
+    def _addRequirement(self, parent, info, page, req):
         item = SQARequirementMatrixItem(parent,
                                         label=unicode(req.label),
                                         satisfied=req.satisfied,
                                         id_=req.path)
-        self.translator.reader.parse(item, req.text)
+        self.reader.tokenize(item, req.text, page, line=info.line)
 
         p = tokens.Paragraph(item, 'p')
         tokens.String(p, content=u'Specification: ')
 
         with codecs.open(req.filename, encoding='utf-8') as fid:
             content = fid.read()
-            floats.ModalLink(p, 'a', tooltip=False, url=u"#",
-                             string=u"{}:{}".format(req.path, req.name),
-                             title=tokens.String(None, content=unicode(req.filename)),
-                             content=tokens.Code(None, language=u'text', code=content))
+            floats.create_modal_link(p,
+                                     tooltip=False,
+                                     url=u"#",
+                                     string=u"{}:{}".format(req.path, req.name),
+                                     title=tokens.String(None, content=unicode(req.filename)),
+                                     content=tokens.Code(None, language=u'text', code=content))
 
         p = tokens.Paragraph(item, 'p')
         tokens.String(p, content=u'Details: ')
         filename = u'{}/{}.md'.format(req.path, req.name)
-        autolink.AutoShortcutLink(p, key=unicode(filename))
+        autolink.AutoLink(p, page=unicode(filename))
 
 class RenderSQATemplateItem(components.RenderComponent):
 
-    def createHTML(self, token, parent):
+    def createHTML(self, parent, token, page):
         pass
 
-    def createMaterialize(self, token, parent):
+    def createMaterialize(self, parent, token, page):
 
         key = token.key
         func = lambda n: isinstance(n, SQADocumentItem) and (n.key == key)
@@ -371,10 +382,7 @@ class RenderSQATemplateItem(components.RenderComponent):
 
         if replacement:
 
-            if token.heading is not None:
-                self.translator.renderer.process(parent, token.heading)
-
-            self.translator.renderer.process(parent, replacement)
+            self.renderer.render(parent, replacement, page)
 
             # Remove item so it doesn't render again
             replacement.parent = None
@@ -382,48 +390,41 @@ class RenderSQATemplateItem(components.RenderComponent):
                 child.parent = None
 #
         else:
-            filename = self.translator.current.local
+            filename = page.local
+            err = alert.AlertToken(None, brand=u'error')
+            alert_title = alert.AlertTitle(err,
+                                           brand=u'error',
+                                           string=u'Missing Template Item "{}"'.format(key))
+            alert_content = alert.AlertContent(err, brand=u'error')
 
-            content = tokens.Token(None)
-            self.translator.reader.parse(content, ERROR_CONTENT.format(key, filename))
+            modal_content = tokens.Token(None)
+            title = tokens.Paragraph(modal_content,
+                                     string=u"The document must include the \"{0}\" template item, this can "\
+                                     u"be included by add adding the following to the markdown " \
+                                     u"file ({1}):".format(key, filename))
 
-            modal_title = tokens.String(None, content=u'Missing Template Item "{}"'.format(key))
+            tokens.Code(modal_content,
+                        code=u"!sqa! item key={0}\nInclude text (in MooseDocs format) " \
+                        u"regarding the \"{0}\" template item here.\n" \
+                        u"!sqa-end!".format(key))
 
-            alert_title = tokens.Token(None)
-            tokens.String(alert_title, content=u'Missing Template Item "{}"'.format(key))
-            h_token = floats.ModalLink(alert_title, url=unicode(filename), content=content,
-                                       title=modal_title, class_='moose-help')
-            materialicon.IconToken(h_token, icon=u'help_outline')
+            link = floats.create_modal_link(alert_title,
+                                            title=u'Missing Template Item "{}"'.format(key),
+                                            content=modal_content)
+            materialicon.IconToken(link, icon=u'help_outline', class_=u'material-icons moose-help')
 
-            err = alert.AlertToken(token.parent, brand=u'error', title=alert_title)
+
             for child in token.children:
-                child.parent = err
+                child.parent = alert_content
 
-            self.translator.renderer.process(parent, err)
-
-ERROR_CONTENT = u"""
-The document must include the \"{0}\" template item, this can be included by add adding the
-following to the markdown file ({1}):
-
-```
-!sqa! item key={0}
-Include text (in MooseDocs format) regarding the "{0}"
-template item here.
-!sqa-end!
-```"""
+            self.renderer.render(parent, err, page)
 
 class RenderSQARequirementMatrix(core.RenderUnorderedList):
-    def createMaterialize(self, token, parent):
-        if token.heading:
-            collection = html.Tag(parent, 'ul', class_="moose-requirements collection with-header")
-            h = html.Tag(collection, 'li', class_='collection-header')
-            self.translator.renderer.process(h, token.heading)
-            return collection
-        else:
-            return html.Tag(parent, 'ul', class_="moose-requirements collection")
+    def createMaterialize(self, parent, token, page):
+        return html.Tag(parent, 'ul', class_="moose-requirements collection with-header")
 
 class RenderSQARequirementMatrixItem(core.RenderListItem):
-    def createMaterialize(self, token, parent): #pylint: disable=no-self-use,unused-argument
+    def createMaterialize(self, parent, token, page): #pylint: disable=no-self-use,unused-argument
         li = html.Tag(parent, 'li', class_="collection-item", **token.attributes)
         num = html.Tag(li, 'span', string=token.label, class_='moose-requirement-number')
 
@@ -437,3 +438,8 @@ class RenderSQARequirementMatrixItem(core.RenderListItem):
                            class_='material-icons moose-requirement-unsatisfied')
 
         return html.Tag(li, 'span', class_='moose-requirement-content')
+
+class RenderSQARequirementMatrixHeading(core.RenderListItem):
+
+    def createMaterialize(self, parent, token, page):
+        return html.Tag(parent, 'li', class_='collection-header')

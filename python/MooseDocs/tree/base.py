@@ -9,12 +9,12 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 #pylint: enable=missing-docstring
 import inspect
+import importlib
 import logging
-
+import collections
+import json
 import anytree
-
 import mooseutils
-
 from MooseDocs.common import exceptions
 
 LOG = logging.getLogger(__name__)
@@ -48,6 +48,10 @@ class Property(object):
             msg = "The default for property must be of type '{}', but '{}' was provided."
             raise exceptions.MooseDocsException(msg, ptype.__name__, type(default).__name__)
 
+        if ptype not in (bool, int, str, unicode, float, list, set, tuple, dict):
+            msg = "The supplied property ptype must be a standard python type for performance reasons."
+            raise exceptions.MooseDocsException(msg)
+
     @property
     def default(self):
         """Return the default for this property."""
@@ -65,6 +69,7 @@ class Property(object):
 
     def __set__(self, instance, value):
         """Set the property value."""
+
         if (self.__type is not None) and (not isinstance(value, self.__type)):
             msg = "The supplied property '{}' must be of type '{}', but '{}' was provided."
             raise exceptions.MooseDocsException(msg, self.name, self.type.__name__,
@@ -105,6 +110,16 @@ class NodeBase(anytree.NodeMixin):
     """
     COLOR = 'RESET'
     PROPERTIES = []
+    def __setstate__(self, state):
+        """Required for properties to be restored after pickling."""
+        self.__dict__ = state
+
+        properties = set()
+        for cls in inspect.getmro(type(self)):
+            properties.update(getattr(cls, 'PROPERTIES', []))
+
+        for prop in properties:
+            setattr(self.__class__, prop.name, prop)
 
     def __init__(self, parent=None, name=None, **kwargs):
         anytree.NodeMixin.__init__(self)
@@ -241,22 +256,105 @@ class NodeBase(anytree.NodeMixin):
 
     def write(self):
         """
-        Abstract method for outputting content of node to a string.
+        Method for outputting content of node to a string.
         """
         out = ''
         for child in self.children:
             out += child.write()
         return out
 
-    def find(self, name, attr=None, maxlevel=None):
-        """
-        Search for a node, by name.
-        """
-        if attr is None:
-            for node in anytree.PreOrderIter(self, maxlevel=maxlevel):
-                if node.name == name:
-                    return node
-        else:
-            for node in anytree.PreOrderIter(self, maxlevel=maxlevel):
-                if (attr in node) and (name in node[attr]):
-                    return node
+def to_dict(root):
+    """Convert tree into a dict()."""
+
+    item = collections.OrderedDict()
+    item['type'] = root.__class__#.__name__
+    item['name'] = root.name
+    item['children'] = list()
+
+    properties = dict()
+    for key, value in root._NodeBase__properties.iteritems():
+        properties[key] = value
+    item['properties'] = properties
+
+    attributes = dict()
+    for key, value in root._NodeBase__attributes.iteritems():
+        attributes[key] = value
+    item['attributes'] = attributes
+
+    for child in root.children:
+        item['children'].append(to_dict(child))
+
+    return item
+
+def to_json(root):
+    """
+    Return a dict() appropriate for JSON output.
+
+    Inputs:
+        _raw[bool]: An internal flag for skipping json conversion while building containers
+    """
+    return json.dumps(to_dict(root), indent=2, sort_keys=True)
+
+
+#def from_dict(data):
+#    return None
+
+"""
+def to_string(root, _raw=False):
+
+    data = dict()
+    for key, value in root._NodeBase__properties.iteritems():
+        data[key] = value
+
+    for key, value in root._NodeBase__attributes.iteritems():
+        data[key] = value
+
+    out = ','.join([str(root.depth),
+                    root.__module__,
+                    root.__class__.__name__,
+                    root.name,
+                    repr(data)])
+    for child in root.children:
+        out += '\n' + to_string(child)
+
+    return out
+
+def __load_line(line):
+    from MooseDocs.tree import tokens
+    data = line.split(',', 4)
+    depth = int(data[0])
+
+    try:
+        kwargs = eval(data[4])
+    except SyntaxError as e:
+        print line
+        import sys; sys.exit(1)
+
+    mod = importlib.import_module(data[1])
+    cls = getattr(mod, data[2])
+    try:
+        return depth, cls(None, data[3], **kwargs)
+    except:
+        print line
+
+
+def from_string(data):
+    #import importlib
+
+    lines = data.splitlines()
+    _, root = __load_line(lines[0])
+
+    parent = root
+    for line in lines[1:]:
+        depth, node = __load_line(line)
+        parent = root
+        for i in range(depth-1):
+            parent = parent.children[-1]
+        node.parent = parent
+
+    return root
+"""
+
+
+#def from_json(data):
+#    return None

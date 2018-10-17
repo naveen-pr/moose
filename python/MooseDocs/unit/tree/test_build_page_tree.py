@@ -8,7 +8,7 @@ from MooseDocs.tree.build_page_tree import build_regex
 from MooseDocs.tree.build_page_tree import find_files
 from MooseDocs.tree.build_page_tree import doc_import
 from MooseDocs.tree.build_page_tree import doc_tree
-from MooseDocs.tree import page
+from MooseDocs.tree import pages
 
 class TestBuildRegex(unittest.TestCase):
     def testBasic(self):
@@ -149,17 +149,17 @@ class TestDocTree(unittest.TestCase):
 
         root = doc_tree(items)
 
-        self.assertIsInstance(root(0), page.DirectoryNode)
+        self.assertIsInstance(root(0), pages.DirectoryNode)
         self.assertEqual(root(0).name, 'getting_started')
         self.assertEqual(root(0).source,
                          os.path.join(ROOT_DIR, 'framework/doc/content/getting_started'))
 
-        self.assertIsInstance(root(0)(0), page.DirectoryNode)
+        self.assertIsInstance(root(0)(0), pages.DirectoryNode)
         self.assertEqual(root(0)(0).name, 'installation')
         self.assertEqual(root(0)(0).source,
                          os.path.join(ROOT_DIR, 'framework/doc/content/getting_started/installation'))
 
-        self.assertIsInstance(root(0)(0)(0), page.MarkdownNode)
+        self.assertIsInstance(root(0)(0)(0), pages.MarkdownNode)
         self.assertEqual(root(0)(0)(0).name, 'bash_profile.md')
         self.assertEqual(root(0)(0)(0).source,
                          os.path.join(ROOT_DIR,

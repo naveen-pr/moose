@@ -10,9 +10,6 @@ from MooseDocs.tree.base import Property
 def make_extension(**kwargs):
     return DevelExtension(**kwargs)
 
-class ExampleToken(tokens.Token):
-    PROPERTIES = [Property("data", ptype=unicode, required=True)]
-
 class DevelExtension(command.CommandExtension):
     """
     Adds features useful for MooseDocs developers such as example blocks and settings tables.
@@ -25,11 +22,8 @@ class DevelExtension(command.CommandExtension):
 
     def extend(self, reader, renderer):
         self.requires(floats)
-
-        self.addCommand(Example())
-        self.addCommand(ComponentSettings())
-
-        renderer.add(ExampleToken, RenderExampleToken())
+        self.addCommand(reader, Example())
+        self.addCommand(reader, ComponentSettings())
 
 class Example(command.CommandComponent):
     COMMAND = 'devel'
@@ -38,21 +32,15 @@ class Example(command.CommandComponent):
     @staticmethod
     def defaultSettings():
         settings = command.CommandComponent.defaultSettings()
-        settings['caption'] = (None, "The caption to use for the code specification example.")
-        settings['prefix'] = (u'Example', "The caption prefix (e.g., Example).")
+        settings.update(floats.caption_settings())
+        settings['prefix'] = (u'Example', settings['prefix'][1])
         return settings
 
-    def createToken(self, match, parent):
-
-        master = floats.Float(parent, **self.attributes)
-        caption = floats.Caption(master, prefix=self.settings['prefix'], key=self.attributes['id'])
-
-        grammar = self.reader.lexer.grammar('inline')
-        self.reader.lexer.tokenize(caption, grammar, unicode(self.settings['caption']), match.line)
-
-        data = match['block'] if 'block' in match else match['inline']
-        example = ExampleToken(master, data=data)
-        return example
+    def createToken(self, parent, info, page):
+        master = floats.create_float(parent, self.extension, self.reader, page, self.settings, **self.attributes)
+        data = info['block'] if 'block' in info else match['inline']
+        tokens.Code(master, code=data)
+        return master
 
 class ComponentSettings(command.CommandComponent):
     COMMAND = 'devel'
@@ -63,26 +51,19 @@ class ComponentSettings(command.CommandComponent):
         settings = command.CommandComponent.defaultSettings()
         settings['module'] = (None, "The name of the module containing the object.")
         settings['object'] = (None, "The name of the object to import from the 'module'.")
-        settings['caption'] = (None, "The caption to use for the settings table created.")
-        settings['prefix'] = (u'Table', "The caption prefix (e.g., Table).")
+        settings.update(floats.caption_settings())
+        settings['prefix'] = (u'Table', settings['prefix'][1])
 
         return settings
 
-    def createToken(self, match, parent):
+    def createToken(self, parent, info, page):
         if self.settings['module'] is None:
             raise exceptions.TokenizeException("The 'module' setting is required.")
 
         if self.settings['object'] is None:
             raise exceptions.TokenizeException("The 'object' setting is required.")
 
-        master = floats.Float(parent, **self.attributes)
-
-        if self.settings['caption']:
-            caption = floats.Caption(master, prefix=self.settings['prefix'],
-                                     key=self.attributes['id'])
-            grammar = self.reader.lexer.grammar('inline')
-            self.reader.lexer.tokenize(caption, grammar, self.settings['caption'], match.line)
-
+        master = floats.create_float(parent, self.extension, self.reader, page, self.settings, **self.attributes)
         try:
             mod = importlib.import_module(self.settings['module'])
         except ImportError:
@@ -109,21 +90,3 @@ class ComponentSettings(command.CommandComponent):
         tbl = table.builder(rows, headings=[u'Key', u'Default', u'Description'])
         tbl.parent = master
         return master
-
-class RenderExampleToken(components.RenderComponent):
-
-    def createHTML(self, token, parent):
-        div = html.Tag(parent, 'div', class_='moose-example')
-        left = html.Tag(div, 'div', class_='moose-example-code')
-        ast = tokens.Code(None, code=token.data)
-        self.translator.renderer.process(left, ast)
-        html.Tag(div, 'div', class_='moose-example-rendered')
-
-    def createMaterialize(self, token, parent):
-
-        div = html.Tag(parent, 'div', class_='row card-content')
-        left = html.Tag(div, 'div', class_='moose-example-code col s12 m12 l12')
-        ast = tokens.Code(None, code=token.data)
-        self.translator.renderer.process(left, ast)
-        right = html.Tag(div, 'div', class_='moose-example-rendered col s12 m12 l12')
-        return right

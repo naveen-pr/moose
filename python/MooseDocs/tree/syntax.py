@@ -57,14 +57,6 @@ class SyntaxNodeBase(NodeBase):
         """Return the 'required' markdown filename."""
         raise NotImplementedError()
 
-    def findfull(self, name, maxlevel=None):
-        """
-        Search for a node, by full name.
-        """
-        for node in anytree.PreOrderIter(self, maxlevel=maxlevel):
-            if (node.fullpath == name) or (node.alias == name):
-                return node
-
     def syntax(self, *args, **kwargs):
         """
         Return SyntaxNode nodes (see __nodeFinder).

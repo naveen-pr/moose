@@ -39,9 +39,9 @@ class PackageExtension(command.CommandExtension):
 
     def extend(self, reader, renderer):
         self.requires(command)
-        self.addCommand(PackageCommand())
-        self.addCommand(PackageCodeReplace())
-        self.addCommand(PackageTextReplace())
+        self.addCommand(reader, PackageCommand())
+        self.addCommand(reader, PackageCodeReplace())
+        self.addCommand(reader, PackageTextReplace())
 
 class PackageCommand(command.CommandComponent):
     """
@@ -64,7 +64,7 @@ class PackageCommand(command.CommandComponent):
         settings['arch'] = (None, "The name of the OS package name to retrieve.")
         return settings
 
-    def createToken(self, info, parent):
+    def createToken(self, parent, info, page):
         arch = self.settings['arch']
         packages = self.extension.get('moose_packages', dict())
 
@@ -103,10 +103,11 @@ class PackageCodeReplace(command.CommandComponent):
                                 "it will be inferred from the extension (if possible).")
         return settings
 
-    def createToken(self, info, parent):
+    def createToken(self, parent, info, page):
         content = info['inline'] if 'inline' in info else info['block']
 
-        for package, version in self.extension.getConfig().iteritems():
+        for package in self.extension.keys():
+            version = self.extension.get(package)
             if package != 'moose_packages':
                 content = content.replace('__' + package.upper() + '__', unicode(version))
 
@@ -136,7 +137,7 @@ class PackageTextReplace(command.CommandComponent):
         settings = command.CommandComponent.defaultSettings()
         return settings
 
-    def createToken(self, info, parent):
+    def createToken(self, parent, info, page):
         content = self.extension.get(info['subcommand'], dict())
         tokens.String(parent, content=unicode(content))
         return parent
