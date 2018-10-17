@@ -2,6 +2,7 @@
 import os
 import collections
 import logging
+import copy
 import re
 import time
 import anytree
@@ -45,7 +46,6 @@ class SyntaxList(tokens.Token):
 
 class SyntaxListItem(tokens.Token):
     PROPERTIES = [tokens.Property('header', default=False, ptype=bool)]
-
 
 class DatabaseListToken(tokens.Token):
     PROPERTIES = [tokens.Property('level', default=2, ptype=int)]
@@ -184,7 +184,7 @@ class AppSyntaxExtension(command.CommandExtension):
         self.addCommand(reader, SyntaxParametersCommand())
         self.addCommand(reader, SyntaxChildrenCommand())
         self.addCommand(reader, SyntaxInputsCommand())
-        #self.addCommand(reader, SyntaxListCommand())
+        self.addCommand(reader, SyntaxListCommand())
         self.addCommand(reader, SyntaxCompleteCommand())
         self.addCommand(reader, SyntaxDisabledCommand())
 
@@ -217,7 +217,6 @@ class SyntaxCommandBase(command.CommandComponent):
         if self.extension.get('disable'):
             return AppSyntaxDisabledToken(parent, string=info[0])
 
-
         if self.settings['syntax'] is None:
             args = info['settings'].split()
             if args and ('=' not in args[0]):
@@ -243,11 +242,11 @@ class SyntaxCommandHeadingBase(SyntaxCommandBase):
         settings['heading-level'] = (2, "Heading level for section title.")
         return settings
 
-    def createHeading(self, parent, page):
-
-        heading = self.settings['heading']
+    def createHeading(self, parent, page, settings=None):
+        settings = settings or self.settings
+        heading = settings['heading']
         if heading is not None:
-            h = tokens.Heading(parent, level=int(self.settings['heading-level']))
+            h = tokens.Heading(parent, level=int(settings['heading-level']))
             self.reader.tokenize(h, heading, page, MooseDocs.INLINE)
 
 class SyntaxDescriptionCommand(SyntaxCommandBase):
@@ -357,13 +356,17 @@ class SyntaxInputsCommand(SyntaxChildrenCommand):
         return settings
 
 
-class SyntaxListCommand(SyntaxCommandBase):
+class SyntaxListCommand(SyntaxCommandHeadingBase):
     SUBCOMMAND = 'list'
     NODE_TYPE = syntax.SyntaxNode
 
     @staticmethod
     def defaultSettings():
-        settings = SyntaxCommandBase.defaultSettings()
+        settings = SyntaxCommandHeadingBase.defaultSettings()
+        settings['heading'] = (u'AUTO',
+                               "The heading title for the input parameters table, use 'None' to " \
+                               "remove the heading.")
+
         settings['groups'] = (None, "List of groups (apps) to include in the complete syntax list.")
         settings['actions'] = (True, "Include a list of Action objects in syntax.")
         settings['objects'] = (True, "Include a list of MooseObject objects in syntax.")
@@ -372,13 +375,12 @@ class SyntaxListCommand(SyntaxCommandBase):
 
     def createTokenFromSyntax(self, parent, info, page, obj):
 
-        master = SyntaxList(parent)
+        master = SyntaxList(None)
 
         groups = self.settings['groups'].split() if self.settings['groups'] else list(obj.groups)
         if 'MooseApp' in groups:
             groups.remove('MooseApp')
             groups.insert(0, 'MooseApp')
-
 
         for group in groups:
             header = SyntaxListItem(master, header=True, string=unicode(mooseutils.camel_to_space(group)))
@@ -394,7 +396,27 @@ class SyntaxListCommand(SyntaxCommandBase):
             if count == 0:
                 header.parent = None
 
+        if master.children:
+            self.createHeading(parent, page)
+            master.parent = parent
+
         return parent
+
+    def createHeading(self, parent, page):
+        if self.settings['heading'] == u'AUTO':
+            h = ['Objects', 'Actions', 'Subsystems']
+            idx = [self.settings['objects'], self.settings['actions'], self.settings['subsystems']]
+            names = [h[i] for i in idx if i]
+            if len(names) == 1:
+                self.settings['heading'] = u'Available {}'.format(*names)
+            elif len(names) == 2:
+                self.settings['heading'] = u'Available {} and {}'.format(*names)
+            elif len(names) == 3:
+                self.settings['heading'] = u'Available {}, {}, and {}'.format(*names)
+            else:
+                self.settings['heading'] = None
+
+        super(SyntaxListCommand, self).createHeading(parent, page, copy.copy(self.settings))
 
     def _addItems(self, parent, info, page, group, objects):
 
@@ -423,9 +445,6 @@ class SyntaxCompleteCommand(SyntaxListCommand):
     def defaultSettings():
         settings = SyntaxListCommand.defaultSettings()
         settings['group'] = (None, "The group (app) to limit the complete syntax list.")
-        settings['actions'] = (True, "Include a list of Action objects in syntax.")
-        settings['objects'] = (True, "Include a list of MooseObject objects in syntax.")
-        settings['subsystems'] = (True, "Include a list of sub system syntax in the output.")
         settings['level'] = (2, "Beginning heading level.")
         return settings
 
@@ -439,10 +458,10 @@ class SyntaxCompleteCommand(SyntaxListCommand):
             if child.removed:
                 continue
 
-            h = tokens.Heading(parent, level=level, string=unicode(child.fullpath.strip('/')))
             url = os.path.join('syntax', child.markdown())
+            h = tokens.Heading(parent, level=level, string=unicode(child.fullpath.strip('/')))
             a = autolink.AutoLink(h, page=url)
-            #materialicon.IconToken(a, icon=u'input', style="padding-left:10px;")
+            materialicon.IconToken(a, icon=u'input')
 
             super(SyntaxCompleteCommand, self).createTokenFromSyntax(parent, info, page, child)
             self._addList(parent, info, page, child, level + 1)

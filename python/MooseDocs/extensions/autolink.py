@@ -142,6 +142,8 @@ class RenderAutoLink(components.RenderComponent):
         url = unicode(desired.relativeDestination(page))
         if token.bookmark is not None:
             url += '#{}'.format(token.bookmark)
+
+
         link = tokens.Link(token.parent, url=url)
         if token.children:
             for child in token.children:
@@ -155,5 +157,5 @@ class RenderAutoLink(components.RenderComponent):
             else:
                 tokens.String(link, content=url)
 
-        #self.renderer.render(parent, link, page)
-        return link
+        self.renderer.render(parent, link, page)
+        return parent
