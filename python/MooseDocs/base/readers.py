@@ -114,6 +114,16 @@ class Reader(mixins.ConfigObject, mixins.ComponentObject):
         """
         pass
 
+    def read(self, page):
+        """
+        Read and return the content of the supplied page, if any.
+        """
+        if isinstance(page, pages.SourceNode) and page.source and os.path.exists(page.source):
+            LOG.debug('READ %s', page.source)
+            #page._modified = os.path.getmtime(page.source)
+            return common.read(page.source).lstrip('\n')
+
+
 class MarkdownReader(Reader):
     """
     Reader designed to work with the 'block' and 'inline' structure of markdown to html conversion.

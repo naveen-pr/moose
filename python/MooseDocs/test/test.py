@@ -34,16 +34,20 @@ def tokenize2(nodes, q, translator):
         translator.reader.tokenize(root, node.content, node)
         q.put((node._unique_id, root))
 
-def runProcess(target, translator, nodes, args=tuple(), attributes=tuple(), num_threads=1):
+def runProcess(target, translator, nodes, args=tuple(), attributes=0, num_threads=1):
     start = time.time()
     jobs = []
-    for chunk in mooseutils.make_chunks(source_nodes, num_threads):
+    for i, n in enumerate(nodes):
+        n._Page__unique_id = i
+
+    for chunk in mooseutils.make_chunks(nodes, num_threads):
         conn1, conn2 = multiprocessing.Pipe()
-        p = multiprocessing.Process(target=tokenize, args=(chunk, conn2, translator) + args)
+        p = multiprocessing.Process(target=target, args=(chunk, conn2, translator) + args)
         p.daemon = True
         p.start()
         jobs.append((p, conn1, conn2))
 
+    data = dict()
     while any(job[0].is_alive() for job in jobs):
         for job, conn1, conn2 in jobs:
             if conn1.poll():
@@ -52,63 +56,33 @@ def runProcess(target, translator, nodes, args=tuple(), attributes=tuple(), num_
                     conn1.close()
                     job.join()
                     break
-                for attr in attributes:
-                    setattr(source_nodes[uid], attr, conn1.recv())
-    return time.time() - start
+               #data[uid] = list()
+                for i in xrange(attributes):
+                    conn1.recv()
+    return time.time() - start, data
 
-def build(translator, nodes, ast, chunk, lock):
-
-
-    for idx in chunk:
-        node = nodes[idx]
-        content = node.read()
-
-        root = translator.reader.getRoot()
-        translator.reader.tokenize(root, content, node)
-        #print root
-        ast[idx] = root
-
-    lock.acquire()
-    print os.getpid(), len(nodes), len(chunk), len(ast), chunk
-    for idx, node in enumerate(nodes):
-        print idx, ast[idx].height
-    #lock.release()
-
-
-    lock.acquire()
-    print os.getpid(), ast#[a.height for a in ast]
-    lock.release()
-
-
-    """
+def tokenize3(nodes, conn, translator):
     for node in nodes:
-        content = node.read()
         root = translator.reader.getRoot()
-        translator.reader.tokenize(root, content, node)
-        ast[node._Page__unique_id] = root
+        translator.reader.tokenize(root, node.read(), node)
+        conn.send(node._Page__unique_id)
+        conn.send(root)
+    conn.send(PROCESS_FINISHED)
 
-    lock.acquire()
-    for n in anytree.PreOrderIter(nodes[0].root):
-
-        if n._ast is None:
-            n._ast = ast[node._Page__unique_id]
-
-    print os.getpid(), [n.ast.height for n in anytree.PreOrderIter(nodes[0].root)]
-    lock.release()
-
+def render3(nodes, conn, translator):
     for node in nodes:
-        result = translator.renderer.getRoot()
-        translator.renderer.render(result, node.ast, node)
+        root = translator.reader.getRoot()
+        translator.reader.tokenize(root, node.read(), node)
+        conn.send(node._Page__unique_id)
+        conn.send(root)
+    conn.send(PROCESS_FINISHED)
 
-        node._result = result
-        node.write()
-    """
 
 
 
 if __name__ == '__main__':
-    config = 'materialize.yml'
-    #config = os.path.join(os.getenv('MOOSE_DIR'), 'modules', 'doc', 'config.yml')
+    #config = 'materialize.yml'
+    config = os.path.join(os.getenv('MOOSE_DIR'), 'modules', 'doc', 'config.yml')
     translator, _ = common.load_config(config)
     translator.init()
 
@@ -120,30 +94,9 @@ if __name__ == '__main__':
 
 
     if True:
-        N = len(source_nodes)
-        manager = multiprocessing.Manager()
-        lock = manager.Lock()
+        t, ast = runProcess(tokenize3, translator, source_nodes, attributes=1, num_threads=num_threads)
 
-        #ast = manager.dict()
-        ast = manager.list([None]*N)
-        indices = list(range(N))
-        #random.shuffle(indices)
-        chunks = mooseutils.make_chunks(indices, num_threads)
-
-        #for i, n in enumerate(source_nodes):
-        #    n._Page__unique_id = i
-
-        jobs = []
-        for chunk in chunks:
-            p = multiprocessing.Process(target=build,
-                                        args=(translator, source_nodes, ast, chunk, lock))
-            #p.daemon = True
-            p.start()
-            jobs.append(p)
-
-        for job in jobs:
-            job.join()
-
+        print t
 
 
 

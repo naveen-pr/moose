@@ -237,10 +237,14 @@ class Translator(mixins.ConfigObject):
         nodes = nodes or [n for n in anytree.PreOrderIter(self.root)]
         source_nodes = [n for n in nodes if isinstance(n, pages.SourceNode)]
 
+
+
+
+        """
+
         self.read(source_nodes, num_threads)
         self.executeExtensionFunction('preExecute', self.root)
-        #self.tokenize(source_nodes, num_threads)
-        mooseutils.run_profile(self.tokenize, source_nodes, num_threads)
+        self.tokenize(source_nodes, num_threads)
         self.render(source_nodes, num_threads)
         self.index(source_nodes, num_threads)
         self.executeExtensionFunction('postExecute', self.root)
@@ -256,6 +260,7 @@ class Translator(mixins.ConfigObject):
             if n.index is not None:
                 items.extend(n.index)
         common.write(iname, 'var index_data = {};'.format(json.dumps(items)))
+        """
 
     def read(self, nodes, num_threads=1):
         """

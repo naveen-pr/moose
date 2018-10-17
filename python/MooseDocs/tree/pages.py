@@ -60,6 +60,9 @@ class Page(base.NodeBase):
         if self.source and os.path.exists(self.source):
             self._modified = os.path.getmtime(self.source)
 
+    # TODO: Move read() to reader: read(page)
+    # TODO: Move write() to renderer: write(page, result)
+
     def read(self):
         """Return content for the page."""
         return None
