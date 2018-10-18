@@ -133,6 +133,8 @@ class Translator(mixins.ConfigObject):
 
         see Translator::execute and RenderComponent::setTranslator/getSyntaxTree
         """
+        return None
+
         if self.get('incremental_build'):
             return self.__page_syntax_trees[page._Page__unique_id]
         else:
@@ -451,8 +453,9 @@ class Translator(mixins.ConfigObject):
             getattr(self.__renderer, name)(*args, **kwargs)
 
         for ext in self.__extensions:
-            func = getattr(ext, name)
-            func(*args, **kwargs)
+            if ext.active:
+                func = getattr(ext, name)
+                func(*args, **kwargs)
 
         return time.time() - start
 

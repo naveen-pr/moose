@@ -73,6 +73,7 @@ class CoreExtension(components.Extension):
         renderer.add(tokens.Subscript, RenderSubscript())
         renderer.add(tokens.Label, RenderLabel())
         renderer.add(tokens.Punctuation, RenderPunctuation())
+        renderer.add(tokens.DisabledToken, RenderDisabled())
 
         for t in [tokens.Word, tokens.Space, tokens.Number, tokens.String]:
             renderer.add(t, RenderString())
@@ -613,3 +614,7 @@ class RenderException(RenderError):
         html.String(pre, content=unicode(token.traceback), escape=True)
 
         return content
+
+class RenderDisabled(components.RenderComponent):
+    def createHTML(self, parent, token, page):
+        return html.Tag(parent, 'span', class_='moose-disabled')

@@ -145,7 +145,6 @@ class RenderAutoLink(components.RenderComponent):
         if token.bookmark is not None:
             url += '#{}'.format(token.bookmark)
 
-
         link = tokens.Link(token.parent, url=url)
         if token.children:
             for child in token.children:

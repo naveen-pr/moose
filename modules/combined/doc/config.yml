@@ -31,7 +31,6 @@ Translators:
 
 Extensions:
     MooseDocs.extensions.appsyntax:
-        disable: False
         executable: ${MOOSE_DIR}/modules/combined
         hide:
             framework: !include framework/doc/hidden.yml

@@ -6,9 +6,6 @@ import re
 from MooseDocs import common
 from MooseDocs.base import components, Reader
 
-# Documenting all these classes is far to repetitive and useless.
-#pylint: disable=missing-docstring
-
 def make_extension():
     return CommandExtension()
 

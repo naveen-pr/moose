@@ -15,9 +15,21 @@ class Extension(mixins.ConfigObject):
     Inputs:
         kwargs: All key-value pairs are treated as configure options, see ConfigObject.
     """
+    @staticmethod
+    def defaultConfig():
+        """Basic Extension configuration options."""
+        config = mixins.ConfigObject.defaultConfig()
+        config['disabled'] = (False, "Toggle for disabling the extension.")
+        return config
+
     def __init__(self, **kwargs):
         mixins.ConfigObject.__init__(self, **kwargs)
         self.__requires = set()
+
+    @property
+    def active(self):
+        """Return the 'disabled' status of the Extension."""
+        return not self.get('disabled', False)
 
     def extend(self, reader, renderer):
         """
@@ -173,6 +185,9 @@ class TokenComponent(Component, mixins.ReaderObject):
             info[LexerInformation]: Object containing the lexer information object.
             parent[tokens.Token]: The parent node in the AST for the token being created.
         """
+        if not self.extension.active:
+            print self.extensions
+            return tokens.DisabledToken(parent, string=info[0])
 
         # Define the settings
         defaults = self.defaultSettings()

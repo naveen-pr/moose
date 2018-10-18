@@ -12,6 +12,9 @@ def find_heading(page, ast, bookmark=None):
         ast[tokens.Token]: The AST from the given page to search.
         bookmark[unicode]: The "id" for the heading.
     """
+    if ast is None:
+        return None
+
     try:
         return copy.copy(HEADING_CACHE[(page.fullpath, bookmark)])
     except KeyError:

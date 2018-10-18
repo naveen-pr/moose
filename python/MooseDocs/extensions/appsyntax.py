@@ -61,9 +61,6 @@ class AppSyntaxExtension(command.CommandExtension):
                               "List of include directories to investigate for class information.")
         config['inputs'] = ([],
                             "List of directories to interrogate for input files using an object.")
-        config['disable'] = (False,
-                             "Disable running the MOOSE application executable and simply use " \
-                             "place holder text.")
         config['hide'] = (None, "Dictionary of syntax to hide.")
         config['remove'] = (None, "List or Dictionary of lists of syntax to remove.")
         config['visible'] = (set(['required', 'optional']),
@@ -79,17 +76,19 @@ class AppSyntaxExtension(command.CommandExtension):
         self._app_syntax = None
         self._database = None
 
-        if not self['disable'] and self.get('executable') is None:
+        if self.active and self.get('executable') is None:
             msg = "No executable defined, the 'appsyntax' extension is being disabled."
             LOG.error(msg)
-            self.update(disable=True)
+            self.update(disabled=True)
 
-        if not self['disable']:
+        if self.active:
             self.__initApplicationSyntax()
             self.__initClassDatabase()
 
-        if self._app_syntax is None:
-            self.update(disable=True)
+            if self._app_syntax is None:
+                msg = "Failed to build application syntax."
+                LOG.error(msg)
+                self.update(disabled=True)
 
     def __initApplicationSyntax(self):
         """Initialize the application syntax."""
@@ -191,15 +190,6 @@ class AppSyntaxExtension(command.CommandExtension):
         renderer.add(InputParametersToken, RenderInputParametersToken())
         renderer.add(SyntaxList, RenderSyntaxList())
         renderer.add(SyntaxListItem, RenderSyntaxListItem())
-        renderer.add(AppSyntaxDisabledToken, RenderAppSyntaxDisabledToken())
-
-class SyntaxDisabledCommand(command.CommandComponent):
-    PARSE_SETTINGS = False
-    COMMAND = 'syntax'
-    SUBCOMMAND = '*'
-
-    def createToken(self, parent, info, page):
-        return AppSyntaxDisabledToken(parent, string=info[0])
 
 class SyntaxCommandBase(command.CommandComponent):
     NODE_TYPE = None
@@ -214,9 +204,6 @@ class SyntaxCommandBase(command.CommandComponent):
         return settings
 
     def createToken(self, parent, info, page):
-        if self.extension.get('disable'):
-            return AppSyntaxDisabledToken(parent, string=info[0])
-
         if self.settings['syntax'] is None:
             args = info['settings'].split()
             if args and ('=' not in args[0]):
@@ -482,53 +469,6 @@ class RenderSyntaxList(components.RenderComponent):
         collection = html.Tag(parent, 'ul', class_='moose-syntax-list collection with-header')
         return collection
 
-        """
-        active_groups = [group.lower() for group in token.groups]
-        errors = []
-
-        groups = list(token.syntax.groups)
-        if 'MooseApp' in groups:
-            groups.remove('MooseApp')
-            groups.insert(0, 'MooseApp')
-
-        collection = html.Tag(None, 'ul', class_='collection with-header')
-        n_groups = len(groups)
-        for group in groups:
-
-            if active_groups and group.lower() not in active_groups:
-                continue
-
-
-            if n_groups > 1:
-                li = html.Tag(collection, 'li',
-                              class_='moose-syntax-header collection-header',
-                              string=unicode(mooseutils.camel_to_space(group)))
-
-            count = len(collection.children)
-            if token.actions:
-                errors += self._addItems(collection, token, token.syntax.actions(group=group),
-                                         'moose-syntax-actions', page)
-            if token.objects:
-                errors += self._addItems(collection, token, token.syntax.objects(group=group),
-                                         'moose-syntax-objects', page)
-            if token.subsystems:
-                errors += self._addItems(collection, token, token.syntax.syntax(group=group),
-                                         'moose-syntax-subsystems', page)
-
-            if n_groups > 1 and len(collection.children) == count:
-                li.parent = None
-
-            if collection.children:
-                collection.parent = parent
-
-        if errors:
-            msg = "The following errors were reported when accessing the '{}' syntax.\n\n"
-            msg += '\n\n'.join(errors)
-            raise exceptions.RenderException(token.info, msg, token.syntax.fullpath)
-        """
-
-
-    #def _addItems(self, parent, token, items, cls, page): #pylint: disable=unused-argument
     def _addItems(self, parent, items):
         for name, href, description in items:
             li = html.Tag(parent, 'li', class_='moose-syntax-item collection-item')
@@ -536,57 +476,6 @@ class RenderSyntaxList(components.RenderComponent):
             if description:
                 desc = html.Tag(li, 'span', class_='moose-syntax-item-description')
                 html.String(desc, content=description)
-
-
-
-
-        """
-        errors = []
-
-        for obj in items:
-
-            if obj.removed:
-                continue
-
-            li = html.Tag(parent, 'li', class_='{} collection-item'.format(cls))
-
-            href = None
-            #TODO: need to figure out how to get rid of 'systems' prefix:
-            #  /Executioner/Adaptivity/index.md
-            #  /Adaptivity/index.md
-            if isinstance(obj, syntax.SyntaxNode):
-                nodes = root_page.findall(os.path.join('syntax', obj.markdown()), exc=None)
-            else:
-                nodes = root_page.findall(obj.markdown(), exc=None)
-
-            if len(nodes) > 1:
-                msg = "Located multiple pages with the given filename:"
-                for n in nodes:
-                    msg += '\n    {}'.format(n.fullpath)
-                errors.append(msg)
-            elif len(nodes) == 0:
-                msg = "Failed to locate a page with the given filename: {}".format(obj.markdown())
-                errors.append(msg)
-            else:
-                href = nodes[0].relativeDestination(page) # allow error
-
-            html.Tag(li, 'a', class_='{}-name'.format(cls), string=unicode(obj.name), href=href)
-
-            if obj.description is not None:
-                desc = html.Tag(li, 'span', class_='{}-description'.format(cls))
-                ast = tokens.Token(None)
-                #self.translator.reader.parse(ast, unicode(obj.description), group=MooseDocs.INLINE)
-                self.renderer.render(desc, ast, page)
-
-        return errors
-        """
-
-class RenderAppSyntaxDisabledToken(components.RenderComponent):
-    def createHTML(self, parent, token, page): #pylint: disable=no-self-use,unused-argument
-        return html.Tag(parent, 'p', class_='moose-disabled')
-
-    def createLatex(self, parent, token, page):
-        pass
 
 class RenderInputParametersToken(components.RenderComponent):
 

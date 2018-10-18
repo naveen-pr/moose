@@ -249,3 +249,6 @@ class Float(Token):
     PROPERTIES = [Property('id', ptype=str),
                   Property('caption', ptype=unicode),
                   Property('label', ptype=str, required=True)]
+
+class DisabledToken(Token):
+    pass

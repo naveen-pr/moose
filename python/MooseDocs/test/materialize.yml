@@ -48,7 +48,7 @@ Extensions:
             MOOSE: https:://mooseframework.org
             libMesh: https://libmesh.github.io/
     MooseDocs.extensions.appsyntax:
-        disable: True
+        disabled: True
 
 Translator:
     type: MooseDocs.base.Translator
