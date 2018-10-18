@@ -25,8 +25,13 @@ Renderer:
     navigation: !include modules/combined/doc/navigation.yml
     google_analytics: True
 
+Translators:
+    type: MooseDocs.base.Translator
+    incremental_build: False
+
 Extensions:
     MooseDocs.extensions.appsyntax:
+        disable: False
         executable: ${MOOSE_DIR}/modules/combined
         hide:
             framework: !include framework/doc/hidden.yml

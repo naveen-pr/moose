@@ -73,6 +73,8 @@ class Translator(mixins.ConfigObject):
         config['destination'] = (os.path.join(os.getenv('HOME'), '.local', 'share', 'moose',
                                               'site'),
                                  "The output directory.")
+        config['incremental_build'] = (False,
+                                       "Do a complete build (default) or incremental build.")
         return config
 
     def __init__(self, content, reader, renderer, extensions, **kwargs):
@@ -93,7 +95,7 @@ class Translator(mixins.ConfigObject):
         self.__renderer = renderer
         self.__destination = None # assigned during init()
 
-        # Members used during conversion, see execute
+        # Members used during conversion, see execute (only used with incremental build)
         self.__page_syntax_trees = None
         self.__page_meta_data = None
         self.__page_dependencies = None
@@ -131,7 +133,13 @@ class Translator(mixins.ConfigObject):
 
         see Translator::execute and RenderComponent::setTranslator/getSyntaxTree
         """
-        return self.__page_syntax_trees[page._Page__unique_id]
+        if self.get('incremental_build'):
+            return self.__page_syntax_trees[page._Page__unique_id]
+        else:
+            content = self.reader.read(page)
+            ast = self.reader.getRoot()
+            self.reader.tokenize(ast, content, page)
+            return ast
 
     def init(self):
         """
@@ -180,9 +188,12 @@ class Translator(mixins.ConfigObject):
             num_threads[int]: The number of threads to use (default: 1).
             nodes[list]: A list of Page object to build, if not provided all pages will be created.
 
+        NOTE: There is still additional work that need to be done to improve the performance of this,
+
+
         The translator execute method is responsible for converting all pages.Page objects
-        contained within the self.__root member variable, these shall be refered to as "pages"
-        herin. The conversion process is as follows.
+        contained within the self.__root member variable, these shall be rewhiferred to as "pages"
+        herein. The conversion process is as follows.
 
         1. Read all content from the pages, in parallel.
         2. Call Reader::preExecute, Renderer::preExecute, and Extension::preExecute.
@@ -246,17 +257,6 @@ class Translator(mixins.ConfigObject):
         for i, n in enumerate(source_nodes):
             n._Page__unique_id = i
 
-        # Initialize storage
-        # These must be sized up front to work correctly with multiprocessing.Connection
-        # object recv() method.
-        self.__page_syntax_trees = [None]*num_nodes
-        self.__page_meta_data = list([None]*num_nodes)
-        self.__page_dependencies = [None]*num_nodes
-        #self.__manager = multiprocessing.Manager()
-        #self.__page_meta_data = self.__manager.list([None]*num_nodes)
-        #self.__page_syntax_trees = self.__manager.list([None]*num_nodes)
-        #self.__page_dependencies = self.__manager.list([None]*num_nodes)
-
         start = time.time()
         LOG.info('Translating using %s threads...', num_threads)
 
@@ -264,15 +264,27 @@ class Translator(mixins.ConfigObject):
         t = self.__executeExtensionFunction('preExecute', self.root)
         LOG.info('  Finished preExecute methods [%s sec]', t)
 
-        # Tokenization
-        LOG.info('  Creating ASTs...')
-        t = self.__tokenize(source_nodes, num_threads)
-        LOG.info('  ASTs Finished [%s sec.]', t)
+        if not self.get('incremental_build'):
+            LOG.info('  Building pages...')
+            t = self.__build(source_nodes, num_threads)
+            LOG.info('  Building complete [%s sec.]', t)
 
-        # Rendering/writting
-        LOG.info('  Rendering ASTs...')
-        t = self.__render(source_nodes, num_threads)
-        LOG.info('  Rendering Finished [%s sec.]', t)
+        else:
+            # Tokenization
+            # These must be sized up front to work correctly with multiprocessing.Connection
+            # object recv() method.
+            self.__page_syntax_trees = [None]*num_nodes
+            self.__page_meta_data = [None]*num_nodes
+            self.__page_dependencies = [None]*num_nodes
+
+            LOG.info('  Creating ASTs...')
+            t = self.__tokenize(source_nodes, num_threads)
+            LOG.info('  ASTs Finished [%s sec.]', t)
+
+            # Rendering/writing
+            LOG.info('  Rendering ASTs...')
+            t = self.__render(source_nodes, num_threads)
+            LOG.info('  Rendering Finished [%s sec.]', t)
 
         # Indexing/copying
         LOG.info('  Finalizing content...')
@@ -285,13 +297,22 @@ class Translator(mixins.ConfigObject):
 
         LOG.info('Translating complete [%s sec.]', time.time() - start)
 
-    def __tokenize(self, source_nodes, num_threads):
-        """
-        Perform tokenization.
+    def __build(self, source_nodes, num_threads):
+        """Perform a complete build."""
+        start = time.time()
+        jobs = []
+        for chunk in mooseutils.make_chunks(source_nodes, num_threads):
+            p = multiprocessing.Process(target=self.__build_target, args=(chunk,))
+            p.start()
+            jobs.append(p)
 
-        NOTE: I tried wrapping the following code in a function that includes the storage locations
-              as arguments; however, the Connection.recv() calls didn't work.
-        """
+        for job in jobs:
+            job.join()
+
+        return time.time() - start
+
+    def __tokenize(self, source_nodes, num_threads):
+        """Perform tokenization (see comments in execute method."""
         start = time.time()
         jobs = []
         for chunk in mooseutils.make_chunks(source_nodes, num_threads):
@@ -319,7 +340,7 @@ class Translator(mixins.ConfigObject):
 
     def __render(self, source_nodes, num_threads):
         """
-        Perform renderering.
+        Perform renderering (see comments in execute method).
         """
         start = time.time()
         jobs = []
@@ -342,6 +363,27 @@ class Translator(mixins.ConfigObject):
         for node in other_nodes:
             self.renderer.write(node)
         return time.time() - start
+
+    def __build_target(self, nodes):
+        """multiprocessing target for translating pages."""
+        for node in nodes:
+            content = self.reader.read(node)
+            meta = Meta(self.__extensions)
+            self.__executeExtensionFunction('updateMetaData', meta, content, node)
+
+            ast = self.reader.getRoot()
+            self.__updateConfigurations(meta)
+            self.__executeExtensionFunction('preTokenize', ast, node)
+            self.reader.tokenize(ast, content, node)
+            self.__executeExtensionFunction('postTokenize', ast, node)
+
+            result = self.renderer.getRoot()
+            self.__executeExtensionFunction('preRender', result, node)
+            self.renderer.render(result, ast, node)
+            self.__executeExtensionFunction('postRender', result, node)
+            self.__renderer.write(node, result)
+
+            self.__resetConfigurations()
 
     @staticmethod
     def _tokenize_target(translator, nodes, conn):
