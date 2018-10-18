@@ -147,7 +147,8 @@ class RenderAtoZ(components.RenderComponent):
         # Extract headings, default to filename if a heading is not found
         filter_=lambda n: isinstance(n, pages.SourceNode)
         for node in anytree.PreOrderIter(page.root, filter_=filter_):
-            h_node = common.find_heading(node)
+            ast = self.getSyntaxTree(node)
+            h_node = common.find_heading(node, ast)
             if h_node is not None:
                 r = html.Tag(None, 'span')
                 self.renderer.render(r, h_node, page)

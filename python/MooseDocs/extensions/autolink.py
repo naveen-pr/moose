@@ -122,7 +122,8 @@ class RenderLocalLink(components.RenderComponent):
     """
     def createHTML(self, parent, token, page):
 
-        heading = common.find_heading(page, token.bookmark)
+        ast = self.getSyntaxTree(page)
+        heading = common.find_heading(page, ast, token.bookmark)
         a = html.Tag(parent, 'a', href=u'#{}'.format(token.bookmark))
         self.renderer.render(a, heading, page)
         return parent
@@ -134,10 +135,9 @@ class RenderAutoLink(components.RenderComponent):
 
     def createHTML(self, parent, token, page):
         desired = common.find_page(page.root, token.page)
-        if desired.ast is None:
-            msg = "The located page, {}, does not contain an AST."
-            print page.name, desired, desired.content, desired.ast
-            raise exceptions.MooseDocsException(msg, desired.source)
+        #if desired.ast is None:
+        #    msg = "The located page, {}, does not contain an AST."
+        #    raise exceptions.MooseDocsException(msg, desired.source)
 
         url = unicode(desired.relativeDestination(page))
         if token.bookmark is not None:
@@ -150,7 +150,8 @@ class RenderAutoLink(components.RenderComponent):
                 child.parent = link
 
         else:
-            heading = common.find_heading(desired, token.bookmark)
+            ast = self.getSyntaxTree(desired)
+            heading = common.find_heading(desired, ast, token.bookmark)
             if heading is not None:
                 for child in heading:
                     child.parent = link

@@ -20,34 +20,46 @@ from multiprocessing.queues import SimpleQueue
 
 PROCESS_FINISHED = -1
 
-def tokenize(nodes, conn, translator):
+
+def tokenize3(nodes, conn, translator):
     for node in nodes:
-        root = tokens.Token(None)
-        translator.reader.tokenize(root, node.content, node)
-        conn.send(node._unique_id)
+        root = translator._Translator__reader.getRoot()
+        translator._Translator__reader.tokenize(root, node.read(), node)
+        conn.send(node._Page__unique_id)
         conn.send(root)
+        conn.send(node.dependencies)
     conn.send(PROCESS_FINISHED)
 
-def tokenize2(nodes, q, translator):
-    for node in nodes:
-        root = tokens.Token(None)
-        translator.reader.tokenize(root, node.content, node)
-        q.put((node._unique_id, root))
+if __name__ == '__main__':
+    config = 'materialize.yml'
+    #config = os.path.join(os.getenv('MOOSE_DIR'), 'modules', 'doc', 'config.yml')
+    translator, _ = common.load_config(config)
+    translator.init()
 
-def runProcess(target, translator, nodes, args=tuple(), attributes=0, num_threads=1):
+
+
+    num_threads = 12
+    nodes = [n for n in anytree.PreOrderIter(translator._Translator__root)]
+    source_nodes = [n for n in nodes if isinstance(n, pages.SourceNode)]
+    N = len(source_nodes)
+
+    #translator._manager = multiprocessing.Manager()
+    _ast = list([None]*N)# translator._manager.list([None]*N)
+    translator._dep = list([None]*N)# translator._manager.list([None]*N)
+
+
     start = time.time()
     jobs = []
-    for i, n in enumerate(nodes):
+    for i, n in enumerate(source_nodes):
         n._Page__unique_id = i
 
-    for chunk in mooseutils.make_chunks(nodes, num_threads):
+    for chunk in mooseutils.make_chunks(source_nodes, num_threads):
         conn1, conn2 = multiprocessing.Pipe()
-        p = multiprocessing.Process(target=target, args=(chunk, conn2, translator) + args)
+        p = multiprocessing.Process(target=tokenize3, args=(chunk, conn2, translator))
         p.daemon = True
         p.start()
         jobs.append((p, conn1, conn2))
 
-    data = dict()
     while any(job[0].is_alive() for job in jobs):
         for job, conn1, conn2 in jobs:
             if conn1.poll():
@@ -55,121 +67,22 @@ def runProcess(target, translator, nodes, args=tuple(), attributes=0, num_thread
                 if uid == PROCESS_FINISHED:
                     conn1.close()
                     job.join()
-                    break
-               #data[uid] = list()
-                for i in xrange(attributes):
-                    conn1.recv()
-    return time.time() - start, data
+                    continue
+                #local = list()
+                for i in xrange(1):
+                   _ast[uid] = conn1.recv()
+                   translator._dep[uid] = conn1.recv()
+                    #d = conn1.recv()
+                    #print type(d), os.getpid()
+                    #data.append(d)
+                    #print conn1.recv()
+                    #data.append(conn1.recv())
+                #print local
+                #data[uid] = local
 
-def tokenize3(nodes, conn, translator):
-    for node in nodes:
-        root = translator.reader.getRoot()
-        translator.reader.tokenize(root, node.read(), node)
-        conn.send(node._Page__unique_id)
-        conn.send(root)
-    conn.send(PROCESS_FINISHED)
+    #for job, _, _ in jobs:
+    #    job.join()
 
-def render3(nodes, conn, translator):
-    for node in nodes:
-        root = translator.reader.getRoot()
-        translator.reader.tokenize(root, node.read(), node)
-        conn.send(node._Page__unique_id)
-        conn.send(root)
-    conn.send(PROCESS_FINISHED)
+    t = time.time() - start
 
-
-
-
-if __name__ == '__main__':
-    #config = 'materialize.yml'
-    config = os.path.join(os.getenv('MOOSE_DIR'), 'modules', 'doc', 'config.yml')
-    translator, _ = common.load_config(config)
-    translator.init()
-
-
-    num_threads = 2
-
-    nodes = [n for n in anytree.PreOrderIter(translator.root)]
-    source_nodes = [n for n in nodes if isinstance(n, pages.SourceNode)]
-
-
-    if True:
-        t, ast = runProcess(tokenize3, translator, source_nodes, attributes=1, num_threads=num_threads)
-
-        print t
-
-
-
-    # CURRENT FUNCTIONS
-    elif False:
-        translator.read(nodes, 1)
-        translator.executeExtensionFunction('preExecute', translator.root)
-        start = time.time()
-        translator.tokenize(source_nodes, num_threads)
-        print 'CURRENT:', time.time() - start, [n.ast.height for n in source_nodes]
-
-    # PIPE VERSION
-    elif False:
-        translator.read(nodes, 1)
-        translator.executeExtensionFunction('preExecute', translator.root)
-
-        for i, n in enumerate(source_nodes):
-            n._unique_id = i
-        t = runProcess(tokenize,
-                       translator,
-                       source_nodes,
-                       num_threads=num_threads,
-                       attributes=('_ast', ))
-
-        """
-        start = time.time()
-        jobs = []
-        for chunk in mooseutils.make_chunks(source_nodes, num_threads):
-            conn1, conn2 = multiprocessing.Pipe()
-            p = multiprocessing.Process(target=tokenize, args=(chunk, conn2, translator))
-            p.daemon = True
-            p.start()
-            jobs.append((p, conn1, conn2))
-
-        while any(job[0].is_alive() for job in jobs):
-            for job, conn1, conn2 in jobs:
-                if conn1.poll():
-                    uid = conn1.recv()
-                    if uid is None:
-                        conn1.close()
-                        job.join()
-                        break
-                    root = conn1.recv()
-                    source_nodes[uid]._ast = root
-        """
-
-        print 'PIPE:', t, [n.ast.height for n in source_nodes]
-
-
-    # Queue
-    else:
-        translator.read(nodes, 1)
-        translator.executeExtensionFunction('preExecute', translator.root)
-
-        for i, n in enumerate(source_nodes):
-            n._unique_id = i
-
-        start = time.time()
-        manager = multiprocessing.Manager()
-        queue = manager.Queue(len(source_nodes))
-        jobs = []
-        for chunk in mooseutils.make_chunks(source_nodes, num_threads):
-            p = multiprocessing.Process(target=tokenize2, args=(chunk, queue, translator))
-            p.daemon = True
-            p.start()
-            jobs.append(p)
-
-        for job in jobs:
-            job.join()
-
-        while not queue.empty():
-            uid, ast = queue.get()
-            source_nodes[uid]._ast = ast
-
-
-        print 'Queue:', time.time() - start, [n.ast.height for n in source_nodes]
+    print _ast[12] #source_nodes[12]._foo

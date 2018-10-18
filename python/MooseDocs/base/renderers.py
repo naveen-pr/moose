@@ -4,6 +4,8 @@ import logging
 import traceback
 import uuid
 import subprocess
+import codecs
+import shutil
 
 import anytree
 
@@ -15,6 +17,14 @@ from MooseDocs.common import exceptions, mixins
 from MooseDocs.tree import html, latex, base, pages, tokens
 
 LOG = logging.getLogger(__name__)
+
+def create_directory(location):
+    """Helper for creating a directory."""
+    with MooseDocs.base.Translator.LOCK:
+        dirname = os.path.dirname(location)
+        if dirname and not os.path.isdir(dirname):
+            LOG.debug('CREATE DIR %s', dirname)
+            os.makedirs(dirname)
 
 class Renderer(mixins.ConfigObject, mixins.ComponentObject):
     """
@@ -116,6 +126,27 @@ class Renderer(mixins.ConfigObject, mixins.ComponentObject):
             result[tree.base.NodeBase]: The root node of the result tree.
         """
         pass
+
+    def write(self, page, result=None):
+        """
+        Write the supplied results using to the destination defined by the page.
+        """
+        if isinstance(page, pages.SourceNode):
+            create_directory(page.destination)
+            LOG.debug('WRITE %s -> %s', page.source, page.destination)
+            with codecs.open(page.destination, 'w', encoding='utf-8') as fid:
+                fid.write(result.write())
+
+        elif isinstance(page, pages.FileNode):
+            create_directory(page.destination)
+            LOG.debug('COPY: %s-->%s', page.source, page.destination)
+            shutil.copyfile(page.source, page.destination)
+
+        elif isinstance(page, pages.DirectoryNode):
+            create_directory(page.destination)
+
+        else:
+            LOG.error('Unknown Node type: %s', type(node))
 
     def _method(self, component):
         """

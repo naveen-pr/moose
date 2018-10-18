@@ -1,4 +1,5 @@
 """Defines Reader objects that convert raw text into an AST."""
+import os
 import logging
 
 import anytree
@@ -6,7 +7,7 @@ import anytree
 import MooseDocs
 from MooseDocs import common
 from MooseDocs.common import mixins
-from MooseDocs.tree import tokens
+from MooseDocs.tree import tokens, pages
 from lexers import RecursiveLexer
 
 LOG = logging.getLogger(__name__)
@@ -73,15 +74,11 @@ class Reader(mixins.ConfigObject, mixins.ComponentObject):
             common.check_type("component", component, MooseDocs.base.components.TokenComponent)
             common.check_type("location", location, (str, int))
 
-        # Define the name of the component being added (for sorting within Grammar)
-        name = component.__class__.__name__
-
-        # Store and init component, checking self.initialized() allows this object to be used
-        # without the Translator which is useful in some cases.
         component.init(self)
         self.addComponent(component)
 
         # Update the lexer
+        name = component.__class__.__name__
         self.__lexer.add(group, name, component.RE, component, location)
 
     def preExecute(self, root):
@@ -120,9 +117,7 @@ class Reader(mixins.ConfigObject, mixins.ComponentObject):
         """
         if isinstance(page, pages.SourceNode) and page.source and os.path.exists(page.source):
             LOG.debug('READ %s', page.source)
-            #page._modified = os.path.getmtime(page.source)
             return common.read(page.source).lstrip('\n')
-
 
 class MarkdownReader(Reader):
     """

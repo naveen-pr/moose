@@ -56,6 +56,9 @@ class Translator(mixins.ConfigObject):
         renderer[Renderer]: A Renderer instance.
         extensions[list]: A list of extensions objects to use.
         kwargs[dict]: Key, value pairs applied to the configuration options.
+
+    This class is the workhorse of MOOSEDocs, it is the hub for all data in and out.  It is not
+    designed to be customized and extensions should have minimal contact with the class.
     """
     #: A multiprocessing lock. This is used in various locations, mainly prior to caching items
     #  as well as during directory creation.
@@ -90,25 +93,30 @@ class Translator(mixins.ConfigObject):
         self.__renderer = renderer
         self.__destination = None # assigned during init()
 
+        # Members used during conversion, see execute
+        self.__page_syntax_trees = None
+        self.__page_meta_data = None
+        self.__page_dependencies = None
+
     @property
     def extensions(self):
-        """Return list of loaded Extension objects."""
-        return self.__extensions
+       """Return list of loaded Extension objects."""
+       return self.__extensions
 
     @property
     def reader(self):
-        """Return the Reader object."""
-        return self.__reader
+       """Return the Reader object."""
+       return self.__reader
 
     @property
     def renderer(self):
-        """Return the Renderer object."""
-        return self.__renderer
+       """Return the Renderer object."""
+       return self.__renderer
 
     @property
     def root(self):
-        """Return the root page of the documents being translated."""
-        return self.__root
+       """Return the root page of the documents being translated."""
+       return self.__root
 
     def update(self, **kwargs):
         """Update configuration and handle destination."""
@@ -116,6 +124,14 @@ class Translator(mixins.ConfigObject):
         if dest is not None:
             kwargs['destination'] = mooseutils.eval_path(dest)
         mixins.ConfigObject.update(self, **kwargs)
+
+    def getSyntaxTree(self, page):
+        """
+        Return the AST for the supplied page, this is used by the RenderComponent.
+
+        see Translator::execute and RenderComponent::setTranslator/getSyntaxTree
+        """
+        return self.__page_syntax_trees[page._Page__unique_id]
 
     def init(self):
         """
@@ -143,6 +159,7 @@ class Translator(mixins.ConfigObject):
                 if comp.extension is None:
                     comp.extension = ext
             for comp in self.__renderer.components:
+                comp.setTranslator(self) # see Translator::execute and RenderComponent::setTranslator
                 if comp.extension is None:
                     comp.extension = ext
 
@@ -154,23 +171,6 @@ class Translator(mixins.ConfigObject):
             node.base = destination
 
         self.__initialized = True
-
-    def executeExtensionFunction(self, name, *args, **kwargs):
-        """
-        Execute pre/post functions for extensions.
-        """
-        if MooseDocs.LOG_LEVEL == logging.DEBUG:
-            common.check_type('name', name, str)
-
-        if hasattr(self.reader, name):
-            getattr(self.reader, name)(*args, **kwargs)
-
-        if hasattr(self.renderer, name):
-            getattr(self.renderer, name)(*args, **kwargs)
-
-        for ext in self.__extensions:
-            func = getattr(ext, name)
-            func(*args, **kwargs)
 
     def execute(self, num_threads=1, nodes=None):
         """
@@ -229,17 +229,115 @@ class Translator(mixins.ConfigObject):
               It might be possible to improve performance by implementing a custom __getstate__
               method that only packages the attributes and properties.
 
-        """
 
+        NOTES: Page object must limit stored data, because they all contain each other.
+
+        """
         common.check_type('num_threads', num_threads, int)
         self.__assertInitialize()
 
-        nodes = nodes or [n for n in anytree.PreOrderIter(self.root)]
+        # Extract the SourceNodes for translation
+        nodes = nodes or [n for n in anytree.PreOrderIter(self.__root)]
         source_nodes = [n for n in nodes if isinstance(n, pages.SourceNode)]
+        other_nodes = [n for n in nodes if not isinstance(n, pages.SourceNode)]
 
+        # Assign an ID to each node for data transfer
+        num_nodes = len(source_nodes)
+        for i, n in enumerate(source_nodes):
+            n._Page__unique_id = i
 
+        # Initialize storage
+        # These must be sized up front to work correctly with multiprocessing.Connection
+        # object recv() method.
+        self.__page_syntax_trees = [None]*num_nodes
+        self.__page_meta_data = list([None]*num_nodes)
+        self.__page_dependencies = [None]*num_nodes
 
+        start = time.time()
+        LOG.info('Translating using %s threads...', num_threads)
 
+        LOG.info('  Executing preExecute methods...')
+        t = self.__executeExtensionFunction('preExecute', self.root)
+        LOG.info('  Finished preExecute methods [%s sec]', t)
+
+        # Tokenization
+        LOG.info('  Creating ASTs...')
+        t = self.__tokenize(source_nodes, num_threads)
+        LOG.info('  ASTs Finished [%s sec.]', t)
+
+        # Rendering/writting
+        LOG.info('  Rendering ASTs...')
+        t = self.__render(source_nodes, num_threads)
+        LOG.info('  Rendering Finished [%s sec.]', t)
+
+        # Indexing/copying
+        LOG.info('  Finalizing content...')
+        t = self.__finalize(other_nodes, num_threads)
+        LOG.info('  Finalizing Finished [%s sec.]', t)
+
+        LOG.info('  Executing postExecute methods...')
+        t =self.__executeExtensionFunction('postExecute', self.root)
+        LOG.info('  Finished postExecute methods [%s sec]', t)
+
+        LOG.info('Translating complete [%s sec.]', time.time() - start)
+
+    def __tokenize(self, source_nodes, num_threads):
+        """
+        Perform tokenization.
+
+        NOTE: I tried wrapping the following code in a function that includes the storage locations
+              as arguments; however, the Connection.recv() calls didn't work.
+        """
+        start = time.time()
+        jobs = []
+        for chunk in mooseutils.make_chunks(source_nodes, num_threads):
+            conn1, conn2 = multiprocessing.Pipe()
+            p = multiprocessing.Process(target=self._tokenize_target,
+                                        args=(self, chunk, conn2))
+            p.daemon = True
+            p.start()
+            jobs.append((p, conn1, conn2))
+
+        while any(job[0].is_alive() for job in jobs):
+            for job, conn1, conn2 in jobs:
+                if conn1.poll():
+                    uid = conn1.recv()
+                    if uid == Translator.PROCESS_FINISHED:
+                        conn1.close()
+                        job.join()
+                        continue
+
+                    self.__page_syntax_trees[uid] = conn1.recv()
+                    self.__page_dependencies[uid] = conn1.recv()
+                    self.__page_meta_data[uid] = conn1.recv()
+
+        return time.time() - start
+
+    def __render(self, source_nodes, num_threads):
+        """
+        Perform renderering.
+        """
+        start = time.time()
+        jobs = []
+        for chunk in mooseutils.make_chunks(source_nodes, num_threads):
+            p = multiprocessing.Process(target=self._render_target, args=(self, chunk))
+            p.daemon = True
+            p.start()
+            jobs.append(p)
+
+        for job in jobs:
+            job.join()
+
+        return time.time() - start
+
+    def __finalize(self, other_nodes, num_threads):
+        """
+        Complete copying of non-source (e.g., images) files as well as perform indexing.
+        """
+        start = time.time()
+        for node in other_nodes:
+            self.renderer.write(node)
+        return time.time() - start
         """
 
         self.read(source_nodes, num_threads)
@@ -262,99 +360,106 @@ class Translator(mixins.ConfigObject):
         common.write(iname, 'var index_data = {};'.format(json.dumps(items)))
         """
 
-    def read(self, nodes, num_threads=1):
-        """
-        Read content of supplied nodes (in parallel).
-        """
-        LOG.info('Reading content...')
-        t = self.__runProcess(nodes,
-                              self._read_target,
-                              attributes=('_content', '_meta'),
-                              num_threads=num_threads)
-        LOG.info('Reading complete [%s sec.]', t)
+    #def read(self, nodes, num_threads=1):
+    #    """
+    #    Read content of supplied nodes (in parallel).
+    #    """
+    #    LOG.info('Reading content...')
+    #    t = self.__runProcess(nodes,
+    #                          self._read_target,
+    #                          attributes=('_content', '_meta'),
+    #                          num_threads=num_threads)
+    #    LOG.info('Reading complete [%s sec.]', t)
 
-    def tokenize(self, nodes, num_threads=1):
-        """
-        Build AST of supplied nodes (in parallel).
-        """
-        LOG.info('Creating ASTs...')
-        t = self.__runProcess(nodes,
-                              self._tokenize_target,
-                              attributes=('_ast', '_dependencies'),
-                              num_threads=num_threads)
-        LOG.info('ASTs Finished [%s sec.]', t)
+    #def tokenize(self, nodes, num_threads=1):
+    #    """
+    #    Build AST of supplied nodes (in parallel).
+    #    """
+    #    LOG.info('Creating ASTs...')
+    #    t = self.__runProcess(nodes,
+    #                          self._tokenize_target,
+    #                          attributes=('_ast', '_dependencies'),
+    #                          num_threads=num_threads)
+    #    LOG.info('ASTs Finished [%s sec.]', t)
 
-    def index(self, nodes, num_threads=1):
-        """
-        Generate index entries.
-        """
-        LOG.info('Creating Index...')
-        t = self.__runProcess(nodes,
-                              self._index_target,
-                              attributes=('_index',),
-                              num_threads=num_threads)
-        LOG.info('Index Finished [%s sec.]', t)
+    #def index(self, nodes, num_threads=1):
+    #    """
+    #    Generate index entries.
+    #    """
+    #    LOG.info('Creating Index...')
+    #    t = self.__runProcess(nodes,
+    #                          self._index_target,
+    #                          attributes=('_index',),
+    #                          num_threads=num_threads)
+    #    LOG.info('Index Finished [%s sec.]', t)
 
-    def render(self, nodes, num_threads=1):
-        """
-        Render AST of supplied nodes (in parallel).
-        """
-        LOG.info('Rendering ASTs...')
-        t = self.__runProcess(nodes,
-                              self._render_target,
-                              attributes=('_result',),
-                              num_threads=num_threads)
-        LOG.info('Rendering Finished [%s sec.]', t)
+    #def render(self, nodes, num_threads=1):
+    #    """
+    #    Render AST of supplied nodes (in parallel).
+    #    """
+    #    LOG.info('Rendering ASTs...')
+    #    t = self.__runProcess(nodes,
+    #                          self._render_target,
+    #                          attributes=('_result',),
+    #                          num_threads=num_threads)
+    #    LOG.info('Rendering Finished [%s sec.]', t)
 
-    def write(self, nodes, num_threads=1):
-        """
-        Write the results to the destination.
-        """
-        LOG.info('Writing results...')
-        t = self.__runProcess(nodes, self._write_target, num_threads=num_threads)
-        LOG.info('Writing complete [%s sec.]', t)
 
-    @staticmethod
-    def _read_target(translator, nodes, conn):
-        """multiprocessing target for the read() method."""
-        for node in nodes:
-            try:
-                content = node.read()
-                if content is not None:
-                    meta = Meta(translator.extensions)
-                    translator.executeExtensionFunction('updateMetaData', meta, content, node)
-                    conn.send(node._Page__unique_id)
-                    conn.send(content)
-                    conn.send(meta)
-                elif isinstance(node, pages.SourceNode):
-                    msg = "The source file, %s, does not contain any content."
-                    LOG.warning(msg, node.source)
 
-            except Exception as e:
-                with Translator.LOCK:
-                    msg =  common.report_exception("Failed to read file: {}", node.source)
-                    LOG.critical(msg)
+    #def write(self, nodes, num_threads=1):
+    #    """
+    #    Write the results to the destination.
+    #    """
+    #    LOG.info('Writing results...')
+    #    t = self.__runProcess(nodes, self._write_target, num_threads=num_threads)
+    #    LOG.info('Writing complete [%s sec.]', t)
 
-        conn.send(Translator.PROCESS_FINISHED)
+    #@staticmethod
+    #def _read_target(translator, nodes, conn):
+    #    """multiprocessing target for the read() method."""
+    #    for node in nodes:
+    #        try:
+    #            content = node.read()
+    #            if content is not None:
+    #                meta = Meta(translator.extensions)
+    #                translator.executeExtensionFunction('updateMetaData', meta, content, node)
+    #                conn.send(node._Page__unique_id)
+    #                conn.send(content)
+    #                conn.send(meta)
+    #            elif isinstance(node, pages.SourceNode):
+    #                msg = "The source file, %s, does not contain any content."
+    #                LOG.warning(msg, node.source)
+
+    #        except Exception as e:
+    #            with Translator.LOCK:
+    #                msg =  common.report_exception("Failed to read file: {}", node.source)
+    #                LOG.critical(msg)
+
+    #    conn.send(Translator.PROCESS_FINISHED)
 
     @staticmethod
     def _tokenize_target(translator, nodes, conn):
         """multiprocessing target for the tokenize() method."""
         for node in nodes:
             try:
-                content = node.content
+                content = translator.__reader.read(node)
                 if content is not None:
-                    ast = translator.reader.getRoot()
-                    translator.__updateConfigurations(node.meta)
-                    translator.executeExtensionFunction('preTokenize', ast, node)
-                    translator.reader.tokenize(ast, content, node)
-                    translator.executeExtensionFunction('postTokenize', ast, node)
+                    meta = Meta(translator.__extensions)
+                    translator.__executeExtensionFunction('updateMetaData', meta, content, node)
+                    ast = translator.__reader.getRoot()
+                    translator.__updateConfigurations(meta)
+                    translator.__executeExtensionFunction('preTokenize', ast, node)
+                    translator.__reader.tokenize(ast, content, node)
+                    translator.__executeExtensionFunction('postTokenize', ast, node)
                     translator.__resetConfigurations()
                     conn.send(node._Page__unique_id)
                     conn.send(ast)
                     conn.send(node.dependencies)
-                else:
-                    content
+                    conn.send(meta)
+
+                elif isinstance(node, pages.SourceNode):
+                    msg = "The source file, %s, does not contain any content."
+                    LOG.warning(msg, node.source)
 
             except Exception as e:
                 with Translator.LOCK:
@@ -363,69 +468,87 @@ class Translator(mixins.ConfigObject):
 
         conn.send(Translator.PROCESS_FINISHED)
 
+    #@staticmethod
+    #def _index_target(translator, nodes, conn):
+    #    """multiprocessing target for the index() method."""
+    #    for node in nodes:
+    #        try:
+    #            index = node.buildIndex(translator.renderer.get('home'))
+    #            conn.send(node._Page__unique_id)
+    #            conn.send(index)
+
+    #        except Exception as e:
+    #            with Translator.LOCK:
+    #                msg = common.report_exception("Failed to index: {}", node.source)
+    #                LOG.critical(msg)
+
+    #    conn.send(Translator.PROCESS_FINISHED)
+
     @staticmethod
-    def _index_target(translator, nodes, conn):
-        """multiprocessing target for the index() method."""
-        for node in nodes:
-            try:
-                index = node.buildIndex(translator.renderer.get('home'))
-                conn.send(node._Page__unique_id)
-                conn.send(index)
-
-            except Exception as e:
-                with Translator.LOCK:
-                    msg = common.report_exception("Failed to index: {}", node.source)
-                    LOG.critical(msg)
-
-        conn.send(Translator.PROCESS_FINISHED)
-
-    @staticmethod
-    def _render_target(translator, nodes, conn):
+    def _render_target(translator, nodes):
         """multiprocessing target for the render() method."""
         for node in nodes:
             try:
-                ast = node.ast
+                ast = translator.__page_syntax_trees[node._Page__unique_id]
+                meta = translator.__page_meta_data[node._Page__unique_id]
                 if ast is not None:
-                    result = translator.renderer.getRoot()
-                    translator.__updateConfigurations(node.meta)
-                    translator.executeExtensionFunction('preRender', result, node)
-                    translator.renderer.render(result, ast, node)
-                    translator.executeExtensionFunction('postRender', result, node)
+                    result = translator.__renderer.getRoot()
+                    translator.__updateConfigurations(meta)
+                    translator.__executeExtensionFunction('preRender', result, node)
+                    translator.__renderer.render(result, ast, node)
+                    translator.__executeExtensionFunction('postRender', result, node)
+                    translator.__renderer.write(node, result)
                     translator.__resetConfigurations()
-                    conn.send(node._Page__unique_id)
-                    conn.send(result)
 
             except Exception as e:
                 with Translator.LOCK:
                     msg = common.report_exception("Failed to render: {}", node.source)
                     LOG.critical(msg)
 
-        conn.send(Translator.PROCESS_FINISHED)
 
-    @staticmethod
-    def _write_target(translator, nodes, conn):
-        """multiprocessing target for the write() method."""
-        for node in nodes:
-            try:
-                 node.write()
-            except Exception as e:
-                with Translator.LOCK:
-                    msg =  common.report_exception("Failed to write file: {}", node.destination)
-                    LOG.critical(msg)
+    #@staticmethod
+    #def _write_target(translator, nodes, conn):
+    #    """multiprocessing target for the write() method."""
+    #    for node in nodes:
+    #        try:
+    #             node.write()
+    #        except Exception as e:
+    #            with Translator.LOCK:
+    #                msg =  common.report_exception("Failed to write file: {}", node.destination)
+    #                LOG.critical(msg)
 
-        conn.send(Translator.PROCESS_FINISHED)
+    #    conn.send(Translator.PROCESS_FINISHED)
+
+    def __executeExtensionFunction(self, name, *args, **kwargs):
+        """Execute pre/post functions for extensions, reader, and renderer."""
+
+        start = time.time()
+        if MooseDocs.LOG_LEVEL == logging.DEBUG:
+            common.check_type('name', name, str)
+
+        if hasattr(self.__reader, name):
+            getattr(self.__reader, name)(*args, **kwargs)
+
+        if hasattr(self.__renderer, name):
+            getattr(self.__renderer, name)(*args, **kwargs)
+
+        for ext in self.__extensions:
+            func = getattr(ext, name)
+            func(*args, **kwargs)
+
+        return time.time() - start
 
     def __updateConfigurations(self, meta):
         """Update configuration from meta data."""
-        self.reader.update(**meta.getConfig('reader'))
-        self.renderer.update(**meta.getConfig('renderer'))
+        self.__reader.update(**meta.getConfig('reader'))
+        self.__renderer.update(**meta.getConfig('renderer'))
         for ext in self.__extensions:
             ext.update(**meta.getConfig(ext.__class__.__name__))
 
     def __resetConfigurations(self):
         """Reset configuration to original state."""
-        self.reader.resetConfig()
-        self.renderer.resetConfig()
+        self.__reader.resetConfig()
+        self.__renderer.resetConfig()
         for ext in self.__extensions:
             ext.resetConfig()
 
@@ -437,7 +560,7 @@ class Translator(mixins.ConfigObject):
 
     def __checkRequires(self, extension):
         """Helper to check the loaded extensions."""
-        available = [e.__module__ for e in self.extensions]
+        available = [e.__module__ for e in self.__extensions]
         messages = []
         for ext in extension._Extension__requires:
             if ext.__name__ not in available:
@@ -447,42 +570,49 @@ class Translator(mixins.ConfigObject):
         if messages:
             raise exceptions.MooseDocsException('\n'.join(messages))
 
-    def __runProcess(self, nodes, target, args=tuple(), attributes=tuple(), num_threads=1):
-        """
-        Helper for running parallel operation on node objects.
 
-        This function uses a one-way Pipe to receive data on the main process. The first call to
-        send should be the node unique id. Then a send for each attribute computed should be sent
-        immediately following. When the work is done the Translator.PROCESS_FINISHED code should
-        be sent.
-        """
-        start = time.time()
-        for i, n in enumerate(nodes):
-            n._Page__unique_id = i
+    ###def __runProcess(self, nodes, target, args=tuple(), containers=tuple(), num_threads=1):
+    ###    """
+    ###    Helper for running parallel operation on node objects.
 
-        jobs = []
-        for chunk in mooseutils.make_chunks(nodes, num_threads):
-            conn1, conn2 = multiprocessing.Pipe()
-            p = multiprocessing.Process(target=target, args=(self, chunk, conn2) + args)
-            p.daemon = True
-            p.start()
-            jobs.append((p, conn1, conn2))
+    ###    This function uses a one-way Pipe to receive data on the main process. The first call to
+    ###    send should be the node unique id. Then a send for each attribute computed should be sent
+    ###    immediately following. When the work is done the Translator.PROCESS_FINISHED code should
+    ###    be sent.
+    ###    """
+    ###    start = time.time()
+    ###    for i, n in enumerate(nodes):
+    ###        n._Page__unique_id = i
 
-        # No-block receiving of data from Pipe
-        # The outer while loop continues as long as there is a job that is still running.
-        while any(job[0].is_alive() for job in jobs):
+    ###    jobs = []
+    ###    for chunk in mooseutils.make_chunks(nodes, num_threads):
+    ###        conn1, conn2 = multiprocessing.Pipe()
+    ###        p = multiprocessing.Process(target=target, args=(self, chunk, conn2) + args)
+    ###       # p.daemon = True
+    ###        p.start()
+    ###        jobs.append((p, conn1, conn2))
 
-            # Loop through all the jobs and look for messages to receive
-            for job, conn1, conn2 in jobs:
-                if conn1.poll(0.1):
-                    uid = conn1.recv()
-                    if uid == Translator.PROCESS_FINISHED:
-                        conn1.close()
-                        job.join()
-                        break
+    ###    # No-block receiving of data from Pipe
+    ###    # The outer while loop continues as long as there is a job that is still running.
+    ###    while any(job[0].is_alive() for job in jobs):
 
-                    # Update the attributes
-                    for attr in attributes:
-                        setattr(nodes[uid], attr, conn1.recv())
+    ###        # Loop through all the jobs and look for messages to receive
+    ###        for job, conn1, conn2 in jobs:
+    ###            if conn1.poll():
+    ###                uid = conn1.recv()
+    ###                if uid == Translator.PROCESS_FINISHED:
+    ###                    conn1.close()
+    ###                    job.join()
+    ###                    break
 
-        return time.time() - start
+    ###                #conn1.recv()
+    ###                #print conn1.recv()
+    ###                #for container in containers:
+    ###                #    container[uid] = conn1.recv()
+    ###                 #wtf[uid] = conn1.recv()
+    ###                #self.__data[uid]._foo = conn1.recv()
+    ###                #print conn1.recv()
+    ###                self.__page_syntax_trees[uid] = conn1.recv()
+    ###                self.__page_dependencies[uid] = conn1.recv()
+
+    ###    return time.time() - start

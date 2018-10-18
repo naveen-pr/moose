@@ -2,7 +2,7 @@
 An Extension is comprised of Component objects, the objects are used for tokenizeing markdown
 and converting tokens to rendered HTML.
 """
-from MooseDocs.common import exceptions, parse_settings, mixins
+from MooseDocs.common import exceptions, parse_settings, mixins, check_type
 
 class Extension(mixins.ConfigObject):
     """
@@ -246,3 +246,19 @@ class RenderComponent(Component, mixins.RendererObject):
         """
         Component.__init__(self)
         mixins.RendererObject.__init__(self)
+        self.__translator = None
+
+    def setTranslator(self, translator):
+        """
+        To avoid pickling data as much as possible during Translator::execute the AST data
+        after tokenization is stored on the translator object. The RenderComponent
+        objects need the abiltiy to get the AST for other pages. The AST is only
+        available across all pages after the translator completes tokenization. This requires
+        that the retrieval method for the AST be limited to rendering (i.e., this class). Hence,
+        the translator is needed here, for the getSyntaxTree method to work.
+        """
+        #check_type('translator', translator, Translator)
+        self.__translator = translator
+
+    def getSyntaxTree(self, page):
+        return self.__translator.getSyntaxTree(page)

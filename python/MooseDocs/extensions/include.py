@@ -31,6 +31,6 @@ class IncludeCommand(command.CommandComponent):
         include_page = common.find_page(page.root, info['subcommand'])
         include_page.addDependency(page.fullpath)
 
-        content, line = common.extractContent(include_page.read(), self.settings)
+        content, line = common.extractContent(self.reader.read(include_page), self.settings)
         self.reader.tokenize(parent, content, include_page, line=line)
         return parent

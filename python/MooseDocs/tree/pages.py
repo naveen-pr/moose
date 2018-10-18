@@ -56,26 +56,26 @@ class Page(base.NodeBase):
         #self.__unique_id = None
 
         # File/directory modification time
-        self._modified = 0
-        if self.source and os.path.exists(self.source):
-            self._modified = os.path.getmtime(self.source)
+        #self._modified = 0
+        #if self.source and os.path.exists(self.source):
+        #    self._modified = os.path.getmtime(self.source)
 
     # TODO: Move read() to reader: read(page)
     # TODO: Move write() to renderer: write(page, result)
 
-    def read(self):
-        """Return content for the page."""
-        return None
+    #def read(self):
+    #    """Return content for the page."""
+    #    return None
 
     def buildIndex(self, home):
         """Return the index for this page."""
         return None
 
-    def write(self): #TODO: This should take the result
-        """
-        Write the to the destination.
-        """
-        pass
+    #def write(self): #TODO: This should take the result
+    #    """
+    #    Write the to the destination.
+    #    """
+    #    pass
 
     @property
     def fullpath(self):
@@ -152,14 +152,6 @@ class Page(base.NodeBase):
         """Define the anytree screen output."""
         return '{} ({}): fullpath={}, {}'.format(self.name, self.__class__.__name__, self.fullpath, self.source)
 
-def create_directory(location):
-    """Helper for creating a directory."""
-    with MooseDocs.base.Translator.LOCK:
-        dirname = os.path.dirname(location)
-        if dirname and not os.path.isdir(dirname):
-            LOG.debug('CREATE DIR %s', dirname)
-            os.makedirs(dirname)
-
 class DirectoryNode(Page):
     """
     Directory nodes.
@@ -179,11 +171,6 @@ class FileNode(Page):
     """
     COLOR = 'MAGENTA'
 
-    def write(self):
-        create_directory(self.destination)
-        LOG.debug('COPY: %s-->%s', self.source, self.destination)
-        shutil.copyfile(self.source, self.destination)
-
 class SourceNode(FileNode):
     """
     Node for content that is being converted (e.g., Markdown files).
@@ -197,25 +184,6 @@ class SourceNode(FileNode):
         _, ext = os.path.splitext(self.source)
         return super(SourceNode, self).destination.replace(ext, self.output_extension)
 
-    def read(self):
-        """
-        Read the content for conversion.
-        """
-        if self.source and os.path.exists(self.source):
-            LOG.debug('READ %s', self.source)
-            self._modified = os.path.getmtime(self.source)
-            return common.read(self.source).lstrip('\n') #pylint: disable=attribute-defined-outside-init
-
-    def write(self):
-        """
-        Write the converted text to the output destination.
-        """
-        if self._result is not None:
-            create_directory(self.destination)
-            LOG.debug('WRITE %s -> %s', self.source, self.destination)
-            with codecs.open(self.destination, 'w', encoding='utf-8') as fid:
-                fid.write(self.result.write())
-
     def buildIndex(self, home):
         """
         Build the search index.
@@ -225,6 +193,9 @@ class SourceNode(FileNode):
 
         This should just go away an be put in the postRender method of an Extension, the
         method could check the renderer type to do what it needs.
+
+        This might need to be a method on Renderer because it requires data communication or could
+        the Meta object be used for this, if it doesn't go away?
         """
         if self._result is None:
             return []
