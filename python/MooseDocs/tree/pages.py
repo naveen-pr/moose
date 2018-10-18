@@ -46,7 +46,6 @@ class Page(base.NodeBase):
         # List of page names that depend on this page
         self._dependencies = set()
 
-
     def buildIndex(self, home):
         """Return the index for this page."""
         return None

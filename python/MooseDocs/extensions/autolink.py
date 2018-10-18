@@ -103,7 +103,6 @@ class PageLinkComponent(core.Link):
                 url += '#{}'.format(bookmark)
             return tokens.Link(parent, url=url)
 
-
         else:
             source = common.project_find(info['url'])
             if len(source) == 1:
@@ -125,7 +124,10 @@ class RenderLocalLink(components.RenderComponent):
         ast = self.getSyntaxTree(page)
         heading = common.find_heading(page, ast, token.bookmark)
         a = html.Tag(parent, 'a', href=u'#{}'.format(token.bookmark))
-        self.renderer.render(a, heading, page)
+        if heading:
+            self.renderer.render(a, heading, page)
+        else:
+            html.String(a, content=u'#{}'.format(token.bookmark))
         return parent
 
 class RenderAutoLink(components.RenderComponent):

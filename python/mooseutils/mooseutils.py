@@ -362,9 +362,10 @@ def run_profile(function, *args, **kwargs):
     """Run supplied function with python profiler."""
     pr = profile.Profile()
     start = time.time()
-    pr.runcall(function, *args, **kwargs)
+    out = pr.runcall(function, *args, **kwargs)
     print('Total Time:', time.time() - start)
     s = StringIO.StringIO()
     ps = pstats.Stats(pr, stream=s).sort_stats('tottime')
     ps.print_stats()
     print(s.getvalue())
+    return out
