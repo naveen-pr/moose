@@ -43,68 +43,17 @@ class Page(base.NodeBase):
         # Complete path of the node
         self._fullpath = os.path.join(self.parent.fullpath, self.name) if self.parent else self.name
 
-        # The following are set by the Translator object.
-        #self._content = None
-        #self._meta = None
-        #self._ast = None
-        #self._index = None
-        #self._result = None
+        # List of page names that depend on this page
         self._dependencies = set()
 
-        # A unique ID used by the translator during parallel computations for data communication,
-        # this should not be used, it is changed by the translator prior to each parallel run.
-        #self.__unique_id = None
-
-        # File/directory modification time
-        #self._modified = 0
-        #if self.source and os.path.exists(self.source):
-        #    self._modified = os.path.getmtime(self.source)
-
-    # TODO: Move read() to reader: read(page)
-    # TODO: Move write() to renderer: write(page, result)
-
-    #def read(self):
-    #    """Return content for the page."""
-    #    return None
 
     def buildIndex(self, home):
         """Return the index for this page."""
         return None
 
-    #def write(self): #TODO: This should take the result
-    #    """
-    #    Write the to the destination.
-    #    """
-    #    pass
-
     @property
     def fullpath(self):
         return self._fullpath
-
-    #@property
-    #def content(self):
-    #    """Return the read content for the page (this can be None)."""
-    #    return self._content
-
-    #@property
-    #def meta(self):
-    #    """Return the meta data for this page."""
-    #    return self._meta
-
-    #@property
-    #def ast(self):
-    #    """Return the AST for the page (this can be None)."""
-    #    return self._ast
-
-    #@property
-    #def index(self):
-    #    """Return the index."""
-    #    return self._index
-
-    #@property
-    #def result(self):
-    #    """Return the rendered result for this page (this can be None)."""
-    #    return self._result
 
     @property
     def dependencies(self):

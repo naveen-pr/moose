@@ -58,7 +58,7 @@ class Translator(mixins.ConfigObject):
         kwargs[dict]: Key, value pairs applied to the configuration options.
 
     This class is the workhorse of MOOSEDocs, it is the hub for all data in and out.  It is not
-    designed to be customized and extensions should have minimal contact with the class.
+    designed to be customized and extensions have no access to this the class.
     """
     #: A multiprocessing lock. This is used in various locations, mainly prior to caching items
     #  as well as during directory creation.

@@ -38,6 +38,16 @@ class Reader(mixins.ConfigObject, mixins.ComponentObject):
         """
         return tokens.Token(None)
 
+    def read(self, page):
+        """
+        Read and return the content of the supplied page.
+
+        This is called by the Translator object.
+        """
+        if isinstance(page, pages.SourceNode) and page.source and os.path.exists(page.source):
+            LOG.debug('READ %s', page.source)
+            return common.read(page.source).lstrip('\n')
+
     def tokenize(self, root, content, page, group=None, line=1):
         """
         Perform the parsing of the supplied content into an AST with the provided root node.
@@ -63,6 +73,8 @@ class Reader(mixins.ConfigObject, mixins.ComponentObject):
     def add(self, group, component, location='_end'):
         """
         Add a component to Extened the Reader by adding a TokenComponent.
+
+        This method is called when adding ReaderComonents in the Exenstion::extend method.
 
         Inputs:
             group[str]: Name of the lexer group to append.
@@ -110,14 +122,6 @@ class Reader(mixins.ConfigObject, mixins.ComponentObject):
             ast[tokens.Token]: The root node of the token tree.
         """
         pass
-
-    def read(self, page):
-        """
-        Read and return the content of the supplied page, if any.
-        """
-        if isinstance(page, pages.SourceNode) and page.source and os.path.exists(page.source):
-            LOG.debug('READ %s', page.source)
-            return common.read(page.source).lstrip('\n')
 
 class MarkdownReader(Reader):
     """

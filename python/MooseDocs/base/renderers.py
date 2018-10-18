@@ -130,6 +130,8 @@ class Renderer(mixins.ConfigObject, mixins.ComponentObject):
     def write(self, page, result=None):
         """
         Write the supplied results using to the destination defined by the page.
+
+        This is called by the Tranlator object.
         """
         if isinstance(page, pages.SourceNode):
             create_directory(page.destination)
