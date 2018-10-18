@@ -617,4 +617,4 @@ class RenderException(RenderError):
 
 class RenderDisabled(components.RenderComponent):
     def createHTML(self, parent, token, page):
-        return html.Tag(parent, 'span', class_='moose-disabled')
+        return html.Tag(parent, token.tag, class_='moose-disabled')

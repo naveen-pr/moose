@@ -251,4 +251,4 @@ class Float(Token):
                   Property('label', ptype=str, required=True)]
 
 class DisabledToken(Token):
-    pass
+    PROPERTIES = [Property('tag', ptype=str, default='p')]

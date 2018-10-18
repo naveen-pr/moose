@@ -5,9 +5,10 @@ import re
 
 from MooseDocs import common
 from MooseDocs.base import components, Reader
+from MooseDocs.tree import tokens
 
-def make_extension():
-    return CommandExtension()
+def make_extension(**kwargs):
+    return CommandExtension(**kwargs)
 
 class CommandExtension(components.Extension):
     EXTENSION_COMMANDS = dict()
@@ -90,6 +91,14 @@ class CommandBase(components.TokenComponent):
             except KeyError:
                 msg = "The following command combination is unknown: '{} {}'."
                 raise common.exceptions.TokenizeException(msg.format(*cmd))
+
+        if not obj.extension.active:
+            if isinstance(self, BlockInlineCommand):
+                return tokens.DisabledToken(parent, tag='p', string=info[0])
+            elif isinstance(self, BlockBlockCommand):
+                return tokens.DisabledToken(parent, tag='p', string=info[0])
+            elif isinstance(self, InlineCommand):
+                return tokens.DisabledToken(parent, tag='span', string=info[0])
 
         # Build the token
         if obj.PARSE_SETTINGS:

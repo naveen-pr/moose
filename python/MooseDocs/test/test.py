@@ -37,6 +37,18 @@ Read only (j24):
 
 if __name__ == '__main__':
 
+    """
+     TIMING: MOOSE_TEST, j24, read, ast only
+     Parallel, Serial
+     9.8, 56.6 (all on)
+     3.3, 17.9
+
+     MODULES/DOC
+       8.0, 43.8 (5.5) - all off, read, ast
+       16.9, 108.2 (6.4) - all off, read, ast, render, write
+
+    """
+
     def build(translator, node):
         content = translator.reader.read(node)
         meta = Meta(translator.extensions)
@@ -48,21 +60,22 @@ if __name__ == '__main__':
         translator.reader.tokenize(ast, content, node)
         translator._Translator__executeExtensionFunction('postTokenize', ast, node)
 
-        #result = translator.renderer.getRoot()
-        #translator._Translator__executeExtensionFunction('preRender', result, node)
-        #translator.renderer.render(result, ast, node)
-        #translator._Translator__executeExtensionFunction('postRender', result, node)
-        #translator._Translator__renderer.write(node, result)
+        result = translator.renderer.getRoot()
+        translator._Translator__executeExtensionFunction('preRender', result, node)
+        translator.renderer.render(result, ast, node)
+        translator._Translator__executeExtensionFunction('postRender', result, node)
+        translator._Translator__renderer.write(node, result)
 
-        #translator._Translator__resetConfigurations()
+        translator._Translator__resetConfigurations()
 
     def target(translator, nodes):
         for node in nodes:
             build(translator, node)
 
 
-    config = 'materialize.yml'
-    #config = os.path.join(os.getenv('MOOSE_DIR'), 'modules', 'doc', 'config.yml')
+    #config = 'materialize.yml'
+    config = os.path.join(os.getenv('MOOSE_DIR'), 'modules', 'doc', 'config.yml')
+   #config = os.path.join(os.getenv('MOOSE_DIR'), 'test', 'doc', 'config.yml')
     translator, _ = common.load_config(config)
     translator.init()
 
@@ -98,10 +111,6 @@ if __name__ == '__main__':
         translator._Translator__executeExtensionFunction('postExecute', translator.root)
         print 'Serial', time.time() - start
 
-
-
-
-
-    if True:
+    if False:
         server = livereload.Server()
         server.serve(root=translator['destination'])

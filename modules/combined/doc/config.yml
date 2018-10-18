@@ -30,7 +30,47 @@ Translators:
     incremental_build: False
 
 Extensions:
+    MooseDocs.extensions.core: default
+    MooseDocs.extensions.floats:
+        active: False
+    MooseDocs.extensions.command:
+        active: False
+    MooseDocs.extensions.include:
+        active: False
+    MooseDocs.extensions.media:
+        active: False
+    MooseDocs.extensions.listing:
+        active: False
+    MooseDocs.extensions.table:
+        active: False
+    MooseDocs.extensions.autolink:
+        active: False
+    MooseDocs.extensions.devel:
+        active: False
+    MooseDocs.extensions.package:
+        active: False
+    MooseDocs.extensions.alert:
+        active: False
+    MooseDocs.extensions.katex:
+        active: False
+    MooseDocs.extensions.bibtex:
+        active: False
+    MooseDocs.extensions.panoptic:
+        active: False
+    MooseDocs.extensions.layout:
+        active: False
+    MooseDocs.extensions.config:
+        active: False
+    MooseDocs.extensions.materialicon:
+        active: False
+    MooseDocs.extensions.content:
+        active: False
+    MooseDocs.extensions.plotly:
+        active: False
     MooseDocs.extensions.appsyntax:
+        active: False
+    MooseDocs.extensions.appsyntax:
+        active: False
         executable: ${MOOSE_DIR}/modules/combined
         hide:
             framework: !include framework/doc/hidden.yml
@@ -70,11 +110,14 @@ Extensions:
             stochastic_tools: !include modules/stochastic_tools/doc/remove.yml
             #tensor_mechanics: !include modules/tensor_mechanics/doc/remove.yml
             #xfem: !include modules/xfem/doc/remove.yml
-    MooseDocs.extensions.panoptic:
+    MooseDocs.extensions.common:
+        active: False
         shortcuts: !include framework/doc/globals.yml
     MooseDocs.extensions.acronym:
+        active: False
         acronyms: !include framework/doc/acronyms.yml
     MooseDocs.extensions.sqa:
+        active: False
         requirement-groups:
             dgkernels: DGKernel Objects
             interfacekernels: InterfaceKernel Objects

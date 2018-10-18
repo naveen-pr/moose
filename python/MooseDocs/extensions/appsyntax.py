@@ -75,6 +75,9 @@ class AppSyntaxExtension(command.CommandExtension):
         self._app_type = None
         self._app_syntax = None
         self._database = None
+        self._cache = dict()
+        self._object_cache = dict()
+        self._syntax_cache = dict()
 
         if self.active and self.get('executable') is None:
             msg = "No executable defined, the 'appsyntax' extension is being disabled."
@@ -185,7 +188,6 @@ class AppSyntaxExtension(command.CommandExtension):
         self.addCommand(reader, SyntaxInputsCommand())
         self.addCommand(reader, SyntaxListCommand())
         self.addCommand(reader, SyntaxCompleteCommand())
-        self.addCommand(reader, SyntaxDisabledCommand())
 
         renderer.add(InputParametersToken, RenderInputParametersToken())
         renderer.add(SyntaxList, RenderSyntaxList())

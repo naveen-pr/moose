@@ -111,7 +111,7 @@ def _yaml_load_extensions(config):
 
     # Get configuration items from configuration
     for ext_type, settings in options.iteritems():
-        if 'type' in settings:
+        if (settings is not None) and ('type' in settings):
             msg = "Using 'type' for the extensions is deprecated, the type should be supplied " \
                   "as the key to the dictionary, rather than an arbitrary name."
             LOG.warning(msg)
@@ -123,7 +123,7 @@ def _yaml_load_extensions(config):
         if isinstance(settings, dict):
             ext_configs[ext_type].update(settings)
 
-        elif (isinstance(settings, str) and settings == 'default'):
+        elif isinstance(settings, str) and (settings == 'default'):
             continue
 
         else:

@@ -76,7 +76,7 @@ class MooseDocsWatcher(livereload.watcher.Watcher):
     def build(self):
         func = lambda n: n.source == self.filepath
         nodes = [anytree.search.find(self._translator.root, filter_=func)]
-        if nodes[0] and node[0].dependencies:
+        if nodes[0] and nodes[0].dependencies:
             for node in anytree.PreOrderIter(self._translator.root):
                 if node.fullpath in nodes[0].dependencies:
                     nodes.append(node)
@@ -182,6 +182,7 @@ def main(options):
         translator.execute(options.num_threads, nodes)
     else:
         translator.execute(options.num_threads)
+        #gmooseutils.run_profile(translator.execute, options.num_threads)
 
     if options.serve:
         watcher = MooseDocsWatcher(translator, options)

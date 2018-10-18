@@ -8,8 +8,8 @@ from MooseDocs.extensions import core
 from MooseDocs.tree import tokens, html
 from MooseDocs.tree.base import Property
 
-def make_extension():
-    return FloatExtension()
+def make_extension(**kwargs):
+    return FloatExtension(**kwargs)
 
 def create_float(parent, extension, reader, page, settings, **kwargs):
     """Helper for optionally creating a float based on the existence of caption and/or id."""
@@ -26,7 +26,6 @@ def caption_settings():
     settings['caption'] = (None, "The caption text for the float object.")
     settings['prefix'] = (None, "The numbered caption label to include prior to the caption text.")
     return settings
-
 
 def add_caption(parent, extension, reader, page, settings):
     """Helper for adding captions to float tokens."""

@@ -4,6 +4,6 @@
 
 !!acro MTU!!
 
-!!acro INL!!
+Some text !!acro INL!!
 
 !!acro MTU!!
