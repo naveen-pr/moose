@@ -48,10 +48,6 @@ class Property(object):
             msg = "The default for property must be of type '{}', but '{}' was provided."
             raise exceptions.MooseDocsException(msg, ptype.__name__, type(default).__name__)
 
-        if ptype not in (bool, int, str, unicode, float, list, set, tuple, dict):
-            msg = "The supplied property ptype must be a standard python type for performance reasons."
-            raise exceptions.MooseDocsException(msg)
-
     @property
     def default(self):
         """Return the default for this property."""

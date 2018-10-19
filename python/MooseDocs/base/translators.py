@@ -271,8 +271,8 @@ class Translator(mixins.ConfigObject):
         #if False:
             self.__page_syntax_trees = [None]*num_nodes # cache for getSyntaxTree
             LOG.info('  Building pages...')
-            #t = self.__build(source_nodes, num_threads)
-            t = None; mooseutils.run_profile(self.__build_target, source_nodes)
+            t = self.__build(source_nodes, num_threads)
+            #t = None; mooseutils.run_profile(self.__build_target, source_nodes)
             LOG.info('  Building complete [%s sec.]', t)
 
         else:
