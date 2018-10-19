@@ -39,7 +39,11 @@ def newToken(name, *props):
     return tokenGenerator
 """
 
-
+class Node(anytree.NodeMixin):
+    def __init__(self, name, parent=None, **kwargs):
+        self.name = name
+        self.parent = parent
+        self.__attributes = kwargs
 
 def newToken(name, **defaults):
     if MooseDocs.LOG_LEVEL == logging.DEBUG:
@@ -62,12 +66,10 @@ def newToken(name, **defaults):
 
         defaults.update(**kwargs)
 
+        #return Node(name, parent, **defaults)
         return anytree.Node(name, parent, **defaults)
 
     return tokenGenerator
-
-class A(base.NodeBase):
-    PROPERTIES = [base.Property('foo', default=1), base.Property('bar', default='foo')]
 
 """ tree.newToken... """
 

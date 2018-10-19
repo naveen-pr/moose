@@ -20,145 +20,34 @@ from MooseDocs.common import exceptions
 LOG = logging.getLogger(__name__)
 
 class Property(object):
-    """
-    A descriptor object for creating properties for the NodeBase class defined below.
-
-    A system using this object and the NodeBase class was created to allow for dynamic property
-    creation on nodes that allows defaults, types, and a required status to be defined for the
-    properties.
-
-    When developing the tokens it was desirable to create properties (via @property) etc. to access
-    token data, but it became a bit tedious so an automatic method was created, see the
-    documentation on the NodeBase class for information on using the automatic system.
-
-    This property class can also be inherited from to allow for arbitrary checks to be performed,
-    for example that a number is positive or a list is the correct length.
-    """
-    def __init__(self, name, default=None, ptype=None, required=False):
-        self.name = name
-        self.__type = ptype
-        self.__required = required
-        self.__default = default
-
-        if (ptype is not None) and (not isinstance(ptype, type)):
-            msg = "The supplied property type (ptype) must be of type 'type', but '{}' provided."
-            raise exceptions.MooseDocsException(msg, type(ptype).__name__)
-
-        if (ptype is not None) and (default is not None) and (not isinstance(default, ptype)):
-            msg = "The default for property must be of type '{}', but '{}' was provided."
-            raise exceptions.MooseDocsException(msg, ptype.__name__, type(default).__name__)
-
-    @property
-    def default(self):
-        """Return the default for this property."""
-        return self.__default
-
-    @property
-    def type(self):
-        """The required property type."""
-        return self.__type
-
-    @property
-    def required(self):
-        """Return the required status for the property."""
-        return self.__required
-
-    def __set__(self, instance, value):
-        """Set the property value."""
-
-        if (self.__type is not None) and (not isinstance(value, self.__type)):
-            msg = "The supplied property '{}' must be of type '{}', but '{}' was provided."
-            raise exceptions.MooseDocsException(msg, self.name, self.type.__name__,
-                                                type(value).__name__)
-        instance._NodeBase__properties[self.name] = value #pylint: disable=protected-access
-
-    def __get__(self, instance, key):
-        """Get the property value."""
-        return instance._NodeBase__properties.get(self.name, self.default) #pylint: disable=protected-access
+    """DUMMY CLASS FOR UPDATING"""
+    def __init__(self, *args, **kwargs):
+        pass
 
 class NodeBase(anytree.NodeMixin):
     """
-    Base class for tree nodes that accepts defined properties and arbitrary attributes.
+    Base class for tree nodes that accepts arbitrary attributes.
 
-    Properties, in the python sense, may be created using the class PROPERTIES variable.
-    For example,
-
-        class ExampleNode(NodeBase):
-            PROPERTIES = Property('foo', required=True)
-
-        node = ExampleNode(foo=42)
-        node.foo = 43
-
-    The PROPERTIES from all parent classes are automatically retrieved.
-
-    Additionally, arbitrary attributes can be stored on creation or by using the dict() style
-    set/get methods. By convention any leading or trailing underscores used in defining the
-    attribute in the constructor are removed for storage.
-
-        node = ExampleNode(foo=42, class_='fancy')
-        node['class'] = 'not fancy'
-
+    The class behaves as a dict(), with respect to accessing the attributes.
 
     Inputs:
-        parent[NodeBase]: (Optional) Set the parent node of the node being created, if not
-                          supplied the resulting node will be the root node.
-        kwargs: (Optional) Any key, value pairs supplied are stored as properties or attributes.
+        parent[NodeBase]: The parent Node (use None for the root)
+        name[str]: The name of the node.
+        **kwargs: Arbitrary key, value pairs that are added to the __dict__ by the anytree.Node
+                  class. These are accessible
+
+    IMPORTANT: In a previous version of MOOSEDocs there was a property system that did automatic
+               setters and getters with type checking and slew of other clever things. Well the
+               cleverness was too slow. The constructor of these objects is called a lot, so the
+               checking was hurting performance.
     """
+
+    #The color to print (see mooseutils.colorText).
     COLOR = 'RESET'
-    PROPERTIES = []
-    def __setstate__(self, state):
-        """Required for properties to be restored after pickling."""
-        self.__dict__ = state
-
-        properties = set()
-        for cls in inspect.getmro(type(self)):
-            properties.update(getattr(cls, 'PROPERTIES', []))
-
-        for prop in properties:
-            setattr(self.__class__, prop.name, prop)
 
     def __init__(self, parent=None, name=None, **kwargs):
-        anytree.NodeMixin.__init__(self)
-
-        # Create a set of unique properties from all classes in the inheritance chain
-        properties = set()
-        for cls in inspect.getmro(type(self)):
-            properties.update(getattr(cls, 'PROPERTIES', []))
-
-        # anytree.NodeMixin properties
-        self.parent = parent
-        self.name = name if name is not None else self.__class__.__name__
-
-        # NodeBase content
-        self.__properties = dict() # storage for property values
-        self.__attributes = dict() # storage for attributes (i.e., unknown key, values)
-
-        # Check PROPERTIES type
-        if not isinstance(self.PROPERTIES, list):
-            raise exceptions.MooseDocsException("The class attribute 'PROPERTIES' must be a list.")
-
-        # Apply the default values
-        for prop in properties:
-            if not isinstance(prop, Property):
-                msg = "The supplied property must be a Property object, but {} provided."
-                raise exceptions.MooseDocsException(msg, type(prop).__name__)
-
-            setattr(self.__class__, prop.name, prop)
-            self.__properties[prop.name] = prop.default
-
-        # Update the properties from the key value pairs
-        for key, value in kwargs.iteritems():
-            if value is None:
-                continue
-            if key in self.__properties:
-                setattr(self, key, value)
-            else:
-                self.__attributes[key.strip('_')] = value
-
-        # Check required
-        for prop in properties:
-            if prop.required and self.__properties[prop.name] is None:
-                raise exceptions.MooseDocsException("The property '{}' is required.", prop.name)
+        anytree.NodeMixin.__init__(self, name, parent, **kwargs)
+        self.__attributes = kwargs
 
     def console(self):
         """
