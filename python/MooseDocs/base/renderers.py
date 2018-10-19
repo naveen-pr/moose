@@ -75,22 +75,8 @@ class Renderer(mixins.ConfigObject, mixins.ComponentObject):
 
         except Exception as e: #pylint: disable=broad-except
             el = None
-
-            title = u'ERROR:{}'.format(e.message)
-            if False:#self.translator.current:
-                filename = mooseutils.colorText('{}:{}\n'.format(self.translator.current.source,
-                                                                 token.info.line), 'RESET')
-            else:
-                filename = ''
-
-            box = mooseutils.colorText(MooseDocs.common.box(token.info[0],
-                                                            line=token.info.line,
-                                                            width=100), 'LIGHT_CYAN')
-            if True:#MooseDocs.LOG_LEVEL == logging.DEBUG:
-                trace = mooseutils.colorText(traceback.format_exc(), 'GREY')
-            else:
-                trace = ''
-            msg = u'\n{}\n{}{}\n{}\n'.format(title, filename, box, trace)
+            msg = common.report_error(e.message, page, token.info, traceback.format_exc(),
+                                      u'RENDER ERROR')
             LOG.error(msg)
 
         if el is not None:

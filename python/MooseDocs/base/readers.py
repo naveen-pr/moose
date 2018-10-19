@@ -67,14 +67,15 @@ class Reader(mixins.ConfigObject, mixins.ComponentObject):
 
         # Report errors
         for token in anytree.PreOrderIter(root):
-            if isinstance(token, tokens.ErrorToken):
-                LOG.error(token.report(page))
+            if token.name == 'ErrorToken':
+                msg = common.report_error(token.message, page, token.info, token.traceback,
+                                          u'TOKENIZE ERROR')
 
     def add(self, group, component, location='_end'):
         """
         Add a component to Extened the Reader by adding a TokenComponent.
 
-        This method is called when adding ReaderComonents in the Exenstion::extend method.
+        This method is called when adding ReaderComonents in the ::extend method.
 
         Inputs:
             group[str]: Name of the lexer group to append.
@@ -126,10 +127,6 @@ class Reader(mixins.ConfigObject, mixins.ComponentObject):
 class MarkdownReader(Reader):
     """
     Reader designed to work with the 'block' and 'inline' structure of markdown to html conversion.
-
-    TODO: Re-investigate removing the 'inline' vs. 'block', it really should be possible if
-          the regex's are designed and ordered correctly. Use 'content' or something similar for
-          recursion.
     """
     EXTENSIONS = ('.md',)
 

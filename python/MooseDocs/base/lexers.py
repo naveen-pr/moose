@@ -107,7 +107,6 @@ class LexerInformation(object):
         match[re.Match]: The regex match object from which a Token object is to be created.
         pattern[Grammar.Pattern]: Grammar pattern definition, see Grammar.py.
         line[int]: Current line number in supplied parsed text.
-        page[page.PageBase]: page node for processing multi-page input
     """
     def __init__(self, match=None, pattern=None, line=None):
         self.__match = dict()
@@ -227,14 +226,15 @@ class Lexer(object):
                 if match:
                     info = LexerInformation(match, pattern, line)
                     try:
-                        obj = self.buildObject(parent, pattern, info, page)
+                        obj = self.buildToken(parent, pattern, info, page)
                     except Exception as e: #pylint: disable=broad-except
-                        obj = tokens.ExceptionToken(parent,
-                                                    info=info,
-                                                    message=unicode(e.message),
-                                                    traceback=traceback.format_exc())
+                        obj = tokens.ErrorToken(parent,
+                                                page=page,
+                                                message=unicode(e.message),
+                                                traceback=traceback.format_exc())
+
                     if obj is not None:
-                        obj.info = info #TODO: set ptype on base Token, change to info
+                        obj.info = info
                         line += match.group(0).count('\n')
                         pos = match.end()
                         break
@@ -247,17 +247,13 @@ class Lexer(object):
         # Produce Exception token if text remains that was not matched
         if pos < n:
             msg = u'Unprocessed text exists.'
-            tokens.ErrorToken(parent, info=info, message=msg)
+            tokens.ErrorToken(parent, page=page, info=info, message=msg)
 
-    def buildObject(self, parent, pattern, info, page): #pylint: disable=no-self-use
+    def buildToken(self, parent, pattern, info, page): #pylint: disable=no-self-use
         """
         Return a token object for the given lexer information.
         """
-        obj = pattern.function(parent, info, page)
-        #if MooseDocs.LOG_LEVEL == logging.DEBUG:
-        #    common.check_type('obj', obj, (tokens.Token, type(None)),
-        #                      exc=exceptions.TokenizeException)
-        return obj
+        return pattern.function(parent, info, page)
 
 class RecursiveLexer(Lexer):
     """
@@ -303,13 +299,13 @@ class RecursiveLexer(Lexer):
         """
         self.grammar(group).add(*args)
 
-    def buildObject(self, parent, pattern, info, page):
+    def buildToken(self, parent, pattern, info, page):
         """
         Override the Lexer.buildObject method to recursively tokenize base on group names.
         """
         if MooseDocs.LOG_LEVEL == logging.DEBUG:
-            common.check_type('parent', parent, tokens.Token, exc=exceptions.TokenizeException)
-            common.check_type('info', info, LexerInformation, exc=exceptions.TokenizeException)
+            common.check_type('parent', parent, tokens.Token)
+            common.check_type('info', info, LexerInformation)
 
         obj = super(RecursiveLexer, self).buildObject(parent, pattern, info, page)
 

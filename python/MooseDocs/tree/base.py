@@ -45,7 +45,7 @@ class NodeBase(anytree.NodeMixin):
     #The color to print (see mooseutils.colorText).
     COLOR = 'RESET'
 
-    def __init__(self, parent=None, name=None, **kwargs):
+    def __init__(self, name, parent, **kwargs):
         anytree.NodeMixin.__init__(self, name, parent, **kwargs)
         self.__attributes = kwargs
 
@@ -132,13 +132,6 @@ class NodeBase(anytree.NodeMixin):
             value = default
         return value
 
-    @property
-    def attributes(self):
-        """
-        Return the attributes for the object.
-        """
-        return self.__attributes
-
     def write(self):
         """
         Method for outputting content of node to a string.
@@ -147,99 +140,3 @@ class NodeBase(anytree.NodeMixin):
         for child in self.children:
             out += child.write()
         return out
-
-def to_dict(root):
-    """Convert tree into a dict()."""
-
-    item = collections.OrderedDict()
-    item['type'] = root.__class__#.__name__
-    item['name'] = root.name
-    item['children'] = list()
-
-    properties = dict()
-    for key, value in root._NodeBase__properties.iteritems():
-        properties[key] = value
-    item['properties'] = properties
-
-    attributes = dict()
-    for key, value in root._NodeBase__attributes.iteritems():
-        attributes[key] = value
-    item['attributes'] = attributes
-
-    for child in root.children:
-        item['children'].append(to_dict(child))
-
-    return item
-
-def to_json(root):
-    """
-    Return a dict() appropriate for JSON output.
-
-    Inputs:
-        _raw[bool]: An internal flag for skipping json conversion while building containers
-    """
-    return json.dumps(to_dict(root), indent=2, sort_keys=True)
-
-
-#def from_dict(data):
-#    return None
-
-"""
-def to_string(root, _raw=False):
-
-    data = dict()
-    for key, value in root._NodeBase__properties.iteritems():
-        data[key] = value
-
-    for key, value in root._NodeBase__attributes.iteritems():
-        data[key] = value
-
-    out = ','.join([str(root.depth),
-                    root.__module__,
-                    root.__class__.__name__,
-                    root.name,
-                    repr(data)])
-    for child in root.children:
-        out += '\n' + to_string(child)
-
-    return out
-
-def __load_line(line):
-    from MooseDocs.tree import tokens
-    data = line.split(',', 4)
-    depth = int(data[0])
-
-    try:
-        kwargs = eval(data[4])
-    except SyntaxError as e:
-        print line
-        import sys; sys.exit(1)
-
-    mod = importlib.import_module(data[1])
-    cls = getattr(mod, data[2])
-    try:
-        return depth, cls(None, data[3], **kwargs)
-    except:
-        print line
-
-
-def from_string(data):
-    #import importlib
-
-    lines = data.splitlines()
-    _, root = __load_line(lines[0])
-
-    parent = root
-    for line in lines[1:]:
-        depth, node = __load_line(line)
-        parent = root
-        for i in range(depth-1):
-            parent = parent.children[-1]
-        node.parent = parent
-
-    return root
-"""
-
-
-#def from_json(data):
-#    return None

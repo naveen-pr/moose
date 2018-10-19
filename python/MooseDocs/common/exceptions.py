@@ -14,23 +14,8 @@ class MooseDocsException(Exception):
     """
     def __init__(self, message, *args, **kwargs):
         err = kwargs.pop('error', None)
+        #TODO: Add page, info options, log=True (defualt) to log.Exception automatically
         msg = message.format(*args)
         if err is not None:
             msg += u'\n\n{}'.format(box(err))
         Exception.__init__(self, msg.encode('utf-8'))
-
-class TokenizeException(MooseDocsException):
-    """
-    Exception for reporting problems during tokenization, this should be called from within
-    the 'createToken' method of TokenComponent objects.
-    """
-    pass
-
-class RenderException(MooseDocsException):
-    """
-    Exception for reporting problem during rendering, this should be called from within the
-    create methods (e.g., 'createHTML', 'createLatex') of RenderComponent objects.
-    """
-    def __init__(self, info, message, *args):
-        MooseDocsException.__init__(self, message, *args)
-        self.info = info

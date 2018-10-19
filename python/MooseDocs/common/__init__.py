@@ -16,4 +16,6 @@ from get_requirements import get_requirements
 from extract_content import extractContent, extractContentSettings, fix_moose_header
 from find_page import find_page, find_pages
 from log import report_exception
+from report_error import report_error
 from find_heading import find_heading
+from exceptions import MooseDocsException
