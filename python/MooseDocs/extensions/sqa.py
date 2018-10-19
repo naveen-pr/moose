@@ -57,6 +57,7 @@ class SQAExtension(command.CommandExtension):
     def extend(self, reader, renderer):
         self.requires(command, alert, floats, core, materialicon)
 
+        """
         self.addCommand(reader, SQATemplateLoadCommand())
         self.addCommand(reader, SQATemplateItemCommand())
         self.addCommand(reader, SQARequirementsCommand())
@@ -69,7 +70,8 @@ class SQAExtension(command.CommandExtension):
         renderer.add(SQARequirementMatrix, RenderSQARequirementMatrix())
         renderer.add(SQARequirementMatrixItem, RenderSQARequirementMatrixItem())
         renderer.add(SQARequirementMatrixHeading, RenderSQARequirementMatrixHeading())
-
+        """
+"""
 class SQADocumentItem(tokens.Token):
     PROPERTIES = [tokens.Property('key', ptype=unicode, required=True)]
 
@@ -97,7 +99,7 @@ class SQAVandVMatrixItem(SQARequirementMatrixItem):
 
 class SQARequirementCrossReference(tokens.Token):
     pass
-
+"""
 class SQARequirementsCommand(command.CommandComponent):
     COMMAND = 'sqa'
     SUBCOMMAND = 'requirements'

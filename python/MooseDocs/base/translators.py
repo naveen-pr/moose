@@ -272,6 +272,7 @@ class Translator(mixins.ConfigObject):
             self.__page_syntax_trees = [None]*num_nodes # cache for getSyntaxTree
             LOG.info('  Building pages...')
             t = self.__build(source_nodes, num_threads)
+            #self.__build_target(source_nodes)
             #t = None; mooseutils.run_profile(self.__build_target, source_nodes)
             LOG.info('  Building complete [%s sec.]', t)
 
@@ -379,6 +380,10 @@ class Translator(mixins.ConfigObject):
     def __build_page(self, node):
         """Build a single page."""
         content = self.reader.read(node)
+        if content is None:
+            print 'SOURCE:', node.name, node.source, type(node), node.source, node._NodeBase__attributes
+            return
+
         meta = Meta(self.__extensions)
         self.__executeExtensionFunction('updateMetaData', meta, content, node)
 

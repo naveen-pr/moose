@@ -195,7 +195,7 @@ class Lexer(object):
     def __init__(self):
         pass
 
-    def tokenize(self, parent, grammar, text, page, line=1):
+    def tokenize(self, parent, text, page, grammar, line=1):
         """
         Perform tokenization of the supplied text.
 

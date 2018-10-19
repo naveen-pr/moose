@@ -6,6 +6,7 @@ import uuid
 import subprocess
 import codecs
 import shutil
+import types
 
 import anytree
 
@@ -47,8 +48,9 @@ class Renderer(mixins.ConfigObject, mixins.ComponentObject):
             token[type]: The token type (not instance) to associate with the supplied component.
             compoment[RenderComponent]: The component to execute with the associated token type.
         """
-        common.check_type("token", token, type)
-        common.check_type("component", component, MooseDocs.base.components.RenderComponent)
+        if MooseDocs.LOG_LEVEL == logging.DEBUG:
+            common.check_type("token", token, unicode)
+            common.check_type("component", component, MooseDocs.base.components.RenderComponent)
         component.init(self)
         self.addComponent(component)
         self.__functions[token] = self._method(component)
@@ -158,7 +160,7 @@ class Renderer(mixins.ConfigObject, mixins.ComponentObject):
         Inputs:
             token[tree.token]: token for which the associated RenderComponent function is desired.
         """
-        return self.__functions.get(type(token), None)
+        return self.__functions.get(token.name, None)
 
 class HTMLRenderer(Renderer):
     """

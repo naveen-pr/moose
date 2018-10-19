@@ -31,14 +31,13 @@ class Page(base.NodeBase):
     This classes uses properties to minimize modifications after construction.
     """
     COLOR = None
-    PROPERTIES = [base.Property('source', ptype=str),
-                  base.Property('base', ptype=str, default='')]
 
-    def __init__(self, *args, **kwargs):
-        base.NodeBase.__init__(self, *args, **kwargs)
+    def __init__(self, parent=None, name=None, source=u'', **kwargs):
+        kwargs.setdefault('base', u'')
+        base.NodeBase.__init__(self, name, parent, **kwargs)
 
-        # Anytree property
-        self.name = os.path.basename(self.source)
+        # Complete source path
+        self._source = source
 
         # Complete path of the node
         self._fullpath = os.path.join(self.parent.fullpath, self.name) if self.parent else self.name
@@ -49,6 +48,11 @@ class Page(base.NodeBase):
     def buildIndex(self, home):
         """Return the index for this page."""
         return None
+
+    @property
+    def source(self):
+        """Return the source location."""
+        self._source
 
     @property
     def fullpath(self):
@@ -67,7 +71,7 @@ class Page(base.NodeBase):
     @property
     def destination(self):
         """Returns the translator destination location."""
-        return os.path.join(self.base, self.local)
+        return os.path.join(self.get('base'), self.local)
 
     def addDependency(self, other):
         """Add a Page object as a dependency to this page."""
@@ -124,13 +128,15 @@ class SourceNode(FileNode):
     Node for content that is being converted (e.g., Markdown files).
     """
     COLOR = 'YELLOW'
-    PROPERTIES = [base.Property('output_extension', ptype=str, required=True)]
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('output_extension', None)
+        super(FileNode, self).__init__(*args, **kwargs)
 
     @property
     def destination(self):
         """The content destination (override)."""
         _, ext = os.path.splitext(self.source)
-        return super(SourceNode, self).destination.replace(ext, self.output_extension)
+        return super(SourceNode, self).destination.replace(ext, self.get('output_extension'))
 
     def buildIndex(self, home):
         """

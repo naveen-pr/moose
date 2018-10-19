@@ -1,7 +1,8 @@
 """
 The MooseDocs systems raises the following exceptions.
 """
-from box import box
+import logging
+LOG = logging.getLogger(__name__)
 class MooseDocsException(Exception):
     """
     General exception.
@@ -13,9 +14,7 @@ class MooseDocsException(Exception):
         error[str]: (Optional) Add the error message, within a box.
     """
     def __init__(self, message, *args, **kwargs):
-        err = kwargs.pop('error', None)
-        #TODO: Add page, info options, log=True (defualt) to log.Exception automatically
         msg = message.format(*args)
-        if err is not None:
-            msg += u'\n\n{}'.format(box(err))
+        if kwargs.pop('log', False):
+            LOG.exception(msg)
         Exception.__init__(self, msg.encode('utf-8'))

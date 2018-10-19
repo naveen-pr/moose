@@ -8,10 +8,10 @@ from MooseDocs.extensions import core
 from MooseDocs.tree import tokens, html
 from MooseDocs.tree.base import Property
 
-class Float(Token):
-    PROPERTIES = [Property('id', ptype=str),
-                  Property('caption', ptype=unicode),
-                  Property('label', ptype=str, required=True)]
+class Float(tokens.Token):
+    PROPERTIES = [tokens.Property('id', ptype=str),
+                  tokens.Property('caption', ptype=unicode),
+                  tokens.Property('label', ptype=str, required=True)]
 
 
 def make_extension(**kwargs):

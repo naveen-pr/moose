@@ -63,7 +63,7 @@ class Reader(mixins.ConfigObject, mixins.ComponentObject):
             common.check_type('content', content, unicode)
 
         # Tokenize
-        self.__lexer.tokenize(root, self.__lexer.grammar(group), content, page, line)
+        self.__lexer.tokenize(root, content, page, self.__lexer.grammar(group), line)
 
         # Report errors
         for token in anytree.PreOrderIter(root):

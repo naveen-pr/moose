@@ -4,7 +4,7 @@ Tools for parsing key value pairs from a raw string (e.g., 'key=value foo=bar')
 import re
 import copy
 
-import exceptions
+from exceptions import MooseDocsException
 
 SETTINGS_RE = re.compile(r'(?P<key>[^\s=]+)=(?P<value>.*?)(?=(?:\s[^\s=]+=|$))',
                          flags=re.MULTILINE|re.UNICODE)
@@ -50,7 +50,7 @@ def match_settings(known, raw):
 
     return known, unknown
 
-def parse_settings(defaults, local, error_on_unknown=True, exc=exceptions.TokenizeException):
+def parse_settings(defaults, local, error_on_unknown=True):
     """
     Method for parsing settings given a dict() of defaults. If options are supplied that do not
     have an item in defaults and exception will be raised.
@@ -69,5 +69,5 @@ def parse_settings(defaults, local, error_on_unknown=True, exc=exceptions.Tokeni
         msg = "The following key, value settings are unknown:"
         for key, value in unknown.iteritems():
             msg += '\n{}{}={}'.format(' '*4, key, repr(value))
-        raise exc(msg)
+        raise MooseDocsException(msg)
     return settings, unknown

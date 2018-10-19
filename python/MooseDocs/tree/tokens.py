@@ -12,11 +12,16 @@ import logging
 import json
 import mooseutils
 
+import MooseDocs
 from MooseDocs import common
 from MooseDocs.common import exceptions
 from MooseDocs.tree.base import NodeBase
 
 LOG = logging.getLogger(__name__)
+
+class Property(object):
+    def __init__(self, *args, **kwargs):
+        pass
 
 def newToken(name, **defaults):
     """
@@ -44,15 +49,13 @@ class Token(NodeBase):
         *args, **kwarg: (Optional) All arguments and key, value pairs supplied are stored in the
                         settings property and may be retrieved via the various access methods.
     """
-    PROPERTIES = [Property('recursive', default=True, ptype=bool),
-                  Property('string', ptype=unicode)]
-
     def __init__(self, parent=None, name=None, **kwargs):
         kwargs.setdefault('recursive', True)
         kwargs.setdefault('string', None)
         super(Token, self).__init__(parent, name, **kwargs)
-        if self.string is not None: #pylint: disable=no-member
-            String(self, content=self.string) #pylint: disable=no-member
+        string = self.get('string', None)
+        if string is not None:
+            String(self, content=string) #pylint: disable=no-member
 
     @property
     def info(self):
@@ -87,6 +90,7 @@ class Token(NodeBase):
         """
         return self.to_json(self)
 
+# TODO: MOVE TO CORE
 Section = newToken('Section')
 String = newToken('String', content=u'')
 Word = newToken('Word', content=u'')

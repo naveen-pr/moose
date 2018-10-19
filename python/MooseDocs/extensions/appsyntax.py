@@ -12,7 +12,6 @@ import mooseutils
 import MooseDocs
 from MooseDocs import common
 from MooseDocs.base import components
-from MooseDocs.common import exceptions
 from MooseDocs.tree import html, tokens, syntax, app_syntax
 from MooseDocs.extensions import floats, autolink, materialicon
 
@@ -168,7 +167,7 @@ class AppSyntaxExtension(command.CommandExtension):
     def apptype(self):
         return self._app_type
 
-    def find(self, name, node_type=None, exc=exceptions.TokenizeException):
+    def find(self, name, node_type=None):
         try:
             if node_type == syntax.ObjectNode:
                 return self._object_cache[name]
@@ -177,7 +176,7 @@ class AppSyntaxExtension(command.CommandExtension):
             return self._cache[name]
         except KeyError:
             msg = "'{}' syntax was not recognized."
-            raise exc(msg, name)
+            raise common.MooseDocsException(msg, name)
 
     def extend(self, reader, renderer):
         self.requires(floats, autolink, materialicon)

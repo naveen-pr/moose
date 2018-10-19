@@ -40,14 +40,22 @@ class NodeBase(anytree.NodeMixin):
                setters and getters with type checking and slew of other clever things. Well the
                cleverness was too slow. The constructor of these objects is called a lot, so the
                checking was hurting performance.
+
+         NOTE: The anytree.NodeMixin was used rather than anytree.Node, which also supports
+               arbitrary attributes, because it constructed a bit faster and accessing the
+               attributes in anytree.Node is done via ., which is less obvious than using
+               dictionary items.
+
     """
 
     #The color to print (see mooseutils.colorText).
     COLOR = 'RESET'
 
     def __init__(self, name, parent, **kwargs):
-        anytree.NodeMixin.__init__(self, name, parent, **kwargs)
+        super(NodeBase, self).__init__()
         self.__attributes = kwargs
+        self.name = name
+        self.parent = parent
 
     def console(self):
         """

@@ -3,7 +3,7 @@ Tools for performing type checks that raise exceptions.
 """
 import types
 from exceptions import MooseDocsException
-def check_type(name, var, var_type, exc=):
+def check_type(name, var, var_type):
     """
     Perform a type check that when if fails throws and exception.
 
