@@ -18,13 +18,17 @@ class Tag(NodeBase):
     """
     PROPERTIES = [Property('close', default=True, ptype=bool), Property('string', ptype=unicode)]
 
-    def __init__(self, parent, name, **kwargs):
-
+    def __init__(self, parent=None, name=None, **kwargs):
+        kwargs.setdefault('close', True)
+        kwargs.setdefault('string', None)
+        kwargs['class'] = kwargs.pop('class_', u'')
+        kwargs['style'] = kwargs.pop('style_', u'')
+        kwargs['id'] = kwargs.pop('id_', u'')
         super(Tag, self).__init__(name=name, parent=parent, **kwargs)
 
-        #pylint: disable=no-member
-        if self.string:
-            String(self, content=self.string)
+        string = self.get('string', None)
+        if string is not None:
+            String(self, content=string)
 
     def addStyle(self, style):
         """
@@ -40,13 +44,13 @@ class Tag(NodeBase):
         """
         c = self.get('class', '').split(' ')
         c += args
-        self['class'] = ' '.join(c)
+        self.set('class', ' '.join(c))
 
     def write(self):
         """Write the HTML as a string, e.g., <foo>...</foo>."""
         out = ''
         attr_list = []
-        for key, value in self.attributes.iteritems():
+        for key, value in self.iteritems():
             if value:# and (key != 'class'):
                 attr_list.append('{}="{}"'.format(key, str(value).strip()))
 
@@ -58,7 +62,7 @@ class Tag(NodeBase):
 
         for child in self.children:
             out += child.write()
-        if self.close: #pylint: disable=no-member
+        if self.get('close'): #pylint: disable=no-member
             out += '</{}>'.format(self.name)
         return out
 
@@ -68,28 +72,21 @@ class Tag(NodeBase):
         """
         strings = []
         for node in anytree.PreOrderIter(self):
-            if isinstance(node, String) and not node.hide:
+            if node.name == 'String':
                 strings.append(node.content)
         return u' '.join(strings)
 
 class String(NodeBase):
     """
-    A node for containing string content, the parent must always be a Tag.
+    A node for containing string content.
     """
-    PROPERTIES = [Property('content', default=u'', ptype=unicode),
-                  Property('escape', default=False, ptype=bool),
-                  Property('hide', default=False, ptype=bool)]
-
     def __init__(self, parent=None, **kwargs):
-        super(String, self).__init__(parent=parent, **kwargs)
-
-        if (self.parent is not None) and (not isinstance(self.parent, Tag)):
-            msg = "If set, the parent of he html.String '{}' must be a html.Tag object, a '{}' " \
-                  " was provided."
-            raise TypeError(msg.format(self.name, type(self.parent).__name__))
+        kwargs.setdefault('content', u'')
+        kwargs.setdefault('escape', u'')
+        super(String, self).__init__('String', parent, **kwargs)
 
     def write(self):
-        if self.escape: #pylint: disable=no-member
-            return cgi.escape(self.content, quote=True) #pylint: disable=no-member
+        if self.get('escape'):
+            return cgi.escape(self.get('content'), quote=True)
         else:
-            return self.content #pylint: disable=no-member
+            return self.get('content')

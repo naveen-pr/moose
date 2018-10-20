@@ -380,10 +380,6 @@ class Translator(mixins.ConfigObject):
     def __build_page(self, node):
         """Build a single page."""
         content = self.reader.read(node)
-        if content is None:
-            print 'SOURCE:', node.name, node.source, type(node), node.source, node._NodeBase__attributes
-            return
-
         meta = Meta(self.__extensions)
         self.__executeExtensionFunction('updateMetaData', meta, content, node)
 

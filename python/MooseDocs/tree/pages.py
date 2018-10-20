@@ -52,7 +52,7 @@ class Page(base.NodeBase):
     @property
     def source(self):
         """Return the source location."""
-        self._source
+        return self._source
 
     @property
     def fullpath(self):
@@ -109,11 +109,6 @@ class DirectoryNode(Page):
     Directory nodes.
     """
     COLOR = 'CYAN'
-    def write(self):
-        """
-        Write the to the destination.
-        """
-        create_directory(self.destination)
 
 class FileNode(Page):
     """

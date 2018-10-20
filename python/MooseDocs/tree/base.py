@@ -65,6 +65,10 @@ class NodeBase(anytree.NodeMixin):
         return '{}: Properties: {}, Attributes: {}'. \
             format(self.name, repr(self.__properties), repr(self.__attributes))
 
+    def iteritems(self):
+        """Return dict key, value iterators."""
+        return self.__attributes.iteritems()
+
     def __repr__(self):
         """
         Prints the name of the token, this works in union with __str__ to print
@@ -139,6 +143,12 @@ class NodeBase(anytree.NodeMixin):
         if value is None:
             value = default
         return value
+
+    def set(self, key, value):
+        """
+        Set the value of an attribute.
+        """
+        self.__attributes[key] = value
 
     def write(self):
         """
