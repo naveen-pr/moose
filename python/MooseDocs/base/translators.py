@@ -177,7 +177,7 @@ class Translator(mixins.ConfigObject):
             self.__checkRequires(ext)
 
         for node in anytree.PreOrderIter(self.__root):
-            node.base = destination
+            node.set('base', destination)
 
         self.__initialized = True
 

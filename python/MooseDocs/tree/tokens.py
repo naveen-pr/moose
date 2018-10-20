@@ -49,10 +49,15 @@ class Token(NodeBase):
         *args, **kwarg: (Optional) All arguments and key, value pairs supplied are stored in the
                         settings property and may be retrieved via the various access methods.
     """
-    def __init__(self, parent=None, name=None, **kwargs):
+    def __init__(self, name=None, parent=None, **kwargs):
         kwargs.setdefault('recursive', True)
         kwargs.setdefault('string', None)
-        super(Token, self).__init__(parent, name, **kwargs)
+        super(Token, self).__init__(name, parent, **kwargs)
+
+        # Storage for Lexer Information object
+        self._info = None
+
+        # Create string on demand
         string = self.get('string', None)
         if string is not None:
             String(self, content=string) #pylint: disable=no-member
@@ -91,30 +96,30 @@ class Token(NodeBase):
         return self.to_json(self)
 
 # TODO: MOVE TO CORE
-Section = newToken('Section')
-String = newToken('String', content=u'')
-Word = newToken('Word', content=u'')
-Space = newToken('Space', count=1)
-Break = newToken('Break', count=1)
-Punctuation = newToken('Punctuation', content=u'')
-Number = newToken('Number', content=u'')
-Code = newToken('Code', content=u'', language=u'text', escape=True)
-Heading = newToken('Heading', level=1)
-Paragraph = newToken('Paragraph')
-OrderedList = newToken('OrderedList')
-UnorderedList = newToken('UnorderedList')
-ListItem = newToken('ListItem')
-Link = newToken('Link', url=u'', tooltip=True)
-Shortcut = newToken('Shortcut', key=u'', link=u'')
-ShortcutLink = newToken('ShortcutLink', key=u'')
-Monospace = newToken('Monospace')
-Strong = newToken('Strong')
-Emphasis = newToken('Emphasis')
-Underline = newToken('UnderLine')
-Strikethrough = newToken('Strikethrough')
-Quote = newToken('Quote')
-Superscript = newToken('Superscript')
-Subscript = newToken('Subscript')
-Label = newToken('Label', text=u'')
-ErrorToken = newToken('ExeceptionToken', message=u'', page=None, traceback=None)
-DisabledToken = newToken('DisabledToken')
+Section = newToken(u'Section')
+String = newToken(u'String', content=u'')
+Word = newToken(u'Word', content=u'')
+Space = newToken(u'Space', count=1)
+Break = newToken(u'Break', count=1)
+Punctuation = newToken(u'Punctuation', content=u'')
+Number = newToken(u'Number', content=u'')
+Code = newToken(u'Code', content=u'', language=u'text', escape=True)
+Heading = newToken(u'Heading', level=1)
+Paragraph = newToken(u'Paragraph')
+OrderedList = newToken(u'OrderedList', start=1)
+UnorderedList = newToken(u'UnorderedList')
+ListItem = newToken(u'ListItem')
+Link = newToken(u'Link', url=u'', tooltip=True)
+Shortcut = newToken(u'Shortcut', key=u'', link=u'')
+ShortcutLink = newToken(u'ShortcutLink', key=u'')
+Monospace = newToken(u'Monospace', content=u'')
+Strong = newToken(u'Strong')
+Emphasis = newToken(u'Emphasis')
+Underline = newToken(u'UnderLine')
+Strikethrough = newToken(u'Strikethrough')
+Quote = newToken(u'Quote')
+Superscript = newToken(u'Superscript')
+Subscript = newToken(u'Subscript')
+Label = newToken(u'Label', text=u'')
+ErrorToken = newToken(u'ErrorToken', message=u'', traceback=None)
+DisabledToken = newToken(u'DisabledToken')

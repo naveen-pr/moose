@@ -57,6 +57,11 @@ class NodeBase(anytree.NodeMixin):
         self.name = name
         self.parent = parent
 
+    @property
+    def attributes(self):
+        """Return the attributes for this Node."""
+        return self.__attributes
+
     def console(self):
         """
         String returned from this function is for screen output. This allows coloring to be

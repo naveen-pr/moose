@@ -68,8 +68,10 @@ class Reader(mixins.ConfigObject, mixins.ComponentObject):
         # Report errors
         for token in anytree.PreOrderIter(root):
             if token.name == 'ErrorToken':
-                msg = common.report_error(token.message, page, token.info, token.traceback,
+                msg = common.report_error(token['message'], page, token.info, token['traceback'],
                                           u'TOKENIZE ERROR')
+                with MooseDocs.base.translators.Translator.LOCK:
+                    LOG.error(msg)
 
     def add(self, group, component, location='_end'):
         """

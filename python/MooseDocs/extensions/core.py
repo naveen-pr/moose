@@ -57,7 +57,6 @@ class CoreExtension(components.Extension):
         renderer.add(u'Monospace', RenderMonospace())
         renderer.add(u'Break', RenderBreak())
         renderer.add(u'ErrorToken', RenderError())
-        renderer.add(u'ExceptionToken', RenderException())
 
         renderer.add(u'Link', RenderLink())
         renderer.add(u'Paragraph', RenderParagraph())
@@ -74,9 +73,9 @@ class CoreExtension(components.Extension):
         renderer.add(u'Label', RenderLabel())
         renderer.add(u'Punctuation', RenderPunctuation())
         renderer.add(u'DisabledToken', RenderDisabled())
+        renderer.add(u'Space', RenderSpace())
 
         renderer.add(u'Word', RenderString())
-        renderer.add(u'Space', RenderString())
         renderer.add(u'Number', RenderString())
         renderer.add(u'String', RenderString())
 
@@ -160,7 +159,7 @@ class List(components.TokenComponent):
     def createToken(self, parent, info, page):
         marker = info['marker']
         n = len(marker)
-        token = self.TOKEN(parent) #pylint: disable=not-callable
+        token = tokens.Token(self.TOKEN, parent) #pylint: disable=not-callable
         strip_regex = re.compile(r'^ {%s}(.*?)$' % n, flags=re.MULTILINE)
 
         for item in self.ITEM_RE.finditer(info['items']):
@@ -169,7 +168,7 @@ class List(components.TokenComponent):
             if indent:
                 msg = "List item content must be indented by {} to match the list item " \
                        "characters of '{}', to end a list item you must use two empty lines."
-                raise exceptions.TokenizeException(msg.format(n, marker))
+                raise exceptions.MooseDocsException(msg, n, marker)
 
             content = strip_regex.sub(r'\1', content)
             self.reader.tokenize(tokens.ListItem(token), content, page, line=info.line)
@@ -182,7 +181,7 @@ class UnorderedList(List):
                     r'(?=\n{3,}|\n*\Z|\n{2}^[^-\s])',  # stop with 2 empty or 1 not with marker
                     flags=re.MULTILINE|re.DOTALL|re.UNICODE)
     ITEM_RE = re.compile(r'^- (?P<item>.*?)(?=\Z|^- )', flags=re.MULTILINE|re.DOTALL|re.UNICODE)
-    TOKEN = tokens.UnorderedList
+    TOKEN = u'UnorderedList'
 
 class OrderedList(List):
     """Ordered lists."""
@@ -192,7 +191,7 @@ class OrderedList(List):
                     flags=re.MULTILINE|re.DOTALL|re.UNICODE)
     ITEM_RE = re.compile(r'^[0-9]+\. (?P<item>.*?)(?=\Z|^[0-9]+\. )',
                          flags=re.MULTILINE|re.DOTALL|re.UNICODE)
-    TOKEN = tokens.OrderedList
+    TOKEN = u'OrderedList'
 
     #TODO: figure out how to handle settings???
     #TODO: combine regex for ordered/unordered
@@ -206,7 +205,7 @@ class OrderedList(List):
 
     def createToken(self, parent, info, page):
         token = List.createToken(self, parent, info, page)
-        token.start = int(info['marker'].strip('. '))
+        token['start'] = int(info['marker'].strip('. '))
         return token
 
 class Shortcut(components.TokenComponent):
@@ -302,9 +301,9 @@ class Format(components.TokenComponent):
 
         # Sub/super script must have word before the rest cannot
         if (tok == '^') or (tok == '@'):
-            if not parent.children or not isinstance(parent.children[-1], tokens.Word):
+            if not parent.children or not (parent.children[-1].name == u'Word'):
                 return None
-        elif parent.children and isinstance(parent.children[-1], tokens.Word):
+        elif parent.children and (parent.children[-1].name == u'Word'):
             return None
 
         if tok == u'@':
@@ -334,14 +333,14 @@ class RenderHeading(components.RenderComponent):
         attr = token.attributes
         id_ = attr.get('id')
         if not id_:
-            func = lambda n: isinstance(n, tokens.Word)
-            words = [node.content.lower() for node in anytree.search.findall(token, filter_=func)]
+            func = lambda n: n.name == u'Word'
+            words = [node['content'].lower() for node in anytree.search.findall(token, filter_=func)]
             attr['id'] = '-'.join(words)
 
-        return html.Tag(parent, 'h{}'.format(token.level), **attr)
+        return html.Tag(parent, 'h{}'.format(token['level']), **attr)
 
     def createLatex(self, parent, token, page): #pylint: disable=no-self-use,unused-argument
-        return latex.Command(parent, self.LATEX_SECTIONS[token.level], start='\n')
+        return latex.Command(parent, self.LATEX_SECTIONS[token['level']], start='\n')
 
 class RenderLabel(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use,unused-argument
@@ -353,14 +352,14 @@ class RenderLabel(components.RenderComponent):
 
 class RenderCode(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
-        language = 'language-{}'.format(token.language)
+        language = 'language-{}'.format(token['language'])
         pre = html.Tag(parent, 'pre', **token.attributes)
         code = html.Tag(pre, 'code', class_=language)
-        html.String(code, content=token.code, escape=token.escape)
+        html.String(code, content=token['content'], escape=token['escape'])
         return pre
 
     def createLatex(self, parent, token, page): #pylint: disable=no-self-use,unused-argument
-        return latex.Environment(parent, 'verbatim', string=token.code, after_begin='',
+        return latex.Environment(parent, 'verbatim', string=token['content'], after_begin='',
                                  before_end='')
 
 class RenderShortcutLink(components.RenderComponent):
@@ -392,18 +391,19 @@ class RenderShortcutLink(components.RenderComponent):
         return cmd
 
     def getShortcut(self, token):
-        if token.key in self.__cache:
-            return self.__cache[token.key]
+        key = token['key']
+        if key in self.__cache:
+            return self.__cache[key]
 
         #TODO: error if more than one found
         for node in anytree.PreOrderIter(token.root, maxlevel=None):
-            if isinstance(node, tokens.Shortcut) and node.key == token.key:
+            if isinstance(node, tokens.Shortcut) and node['key'] == key:
                 with Translator.LOCK:
-                    self.__cache[token.key] = node
+                    self.__cache[key] = node
                 return node
 
         msg = "The shortcut link key '{}' was not located in the list of shortcuts."
-        raise exceptions.RenderException(token.info, msg, token.key)
+        raise exceptions.MooseExeception(msg, key)
 
 class RenderShortcut(components.RenderComponent):
     def createHTML(self, parent, token, page):
@@ -415,12 +415,12 @@ class RenderShortcut(components.RenderComponent):
 class RenderMonospace(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
         code = html.Tag(parent, 'code')
-        html.String(code, content=token.code, escape=True)
+        html.String(code, content=token['content'], escape=True)
         return code
 
     def createLatex(self, parent, token, page): #pylint: disable=no-self-use
         code = latex.Command(parent, 'texttt')
-        latex.String(code, content=token.code)
+        latex.String(code, content=token['content'])
         return
 
 class RenderBreak(components.RenderComponent):
@@ -432,11 +432,11 @@ class RenderBreak(components.RenderComponent):
 
 class RenderLink(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
-        return html.Tag(parent, 'a', href=token.url, **token.attributes)
+        return html.Tag(parent, 'a', href=token['url'], **token.attributes)
 
     def createMaterialize(self, parent, token, page):
         tag = self.createHTML(parent, token, page)
-        if token.tooltip:
+        if token['tooltip']:
             tag.addClass('tooltipped')
             if 'data-tooltip' not in tag:
                 tag['data-tooltip'] = tag['href']
@@ -444,7 +444,7 @@ class RenderLink(components.RenderComponent):
         return tag
 
     def createLatex(self, parent, token, page): #pylint: disable=no-self-use,unused-argument
-        url = token.url.lstrip('#')
+        url = token['url'].lstrip('#')
         cmd = latex.CustomCommand(parent, 'href')
         latex.Brace(cmd, string=url)
         arg1 = latex.Brace(cmd)
@@ -465,7 +465,7 @@ class RenderOrderedList(components.RenderComponent):
     def createMaterialize(self, parent, token, page): #pylint: disable=no-self-use
         tag = self.createHTML(parent, token, page)
         tag.addClass('browser-default')
-        tag['start'] = token.start
+        tag['start'] = token['start']
         return tag
 
     def createLatex(self, parent, token, page): #pylint: disable=no-self-use,unused-argument
@@ -493,10 +493,17 @@ class RenderListItem(components.RenderComponent):
 
 class RenderString(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
-        return html.String(parent, content=token.content)
+        return html.String(parent, content=token['content'])
 
     def createLatex(self, parent, token, page): #pylint: disable=no-self-use
-        return latex.String(parent, content=token.content)
+        return latex.String(parent, content=token['content'])
+
+class RenderSpace(components.RenderComponent):
+    def createHTML(self, parent, token, page): #pylint: disable=no-self-use
+        return html.String(parent, content=u' '*token['count'])
+
+    def createLatex(self, parent, token, page): #pylint: disable=no-self-use
+        return latex.String(parent, content=u' '*token['count'])
 
 class RenderQuote(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
@@ -564,9 +571,10 @@ class RenderSubscript(components.RenderComponent):
 
 class RenderPunctuation(RenderString):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
-        if token.content == u'--':
+        content = token['content']
+        if content == u'--':
             return html.String(parent, content=u'&ndash;')
-        elif token.content == u'---':
+        elif content == u'---':
             return html.String(parent, content=u'&mdash;')
 
         return RenderString.createHTML(self, parent, token, page)
@@ -589,7 +597,7 @@ class RenderError(components.RenderComponent):
         html.String(head, content=u'Tokenize Error')
         p = html.Tag(content, 'p')
 
-        html.String(p, content=unicode(token.message))
+        html.String(p, content=unicode(token['message']))
         html.Tag(p, 'br', close=False)
         html.String(p, content=u'{}:{}'.format(page.local, token.info.line))
         html.Tag(p, 'br', close=False)
@@ -602,21 +610,16 @@ class RenderError(components.RenderComponent):
         done = html.Tag(footer, 'a', class_="modal-action modal-close btn-flat")
         html.String(done, content=u"Done")
 
+        trace = token.get('traceback', None)
+        if trace is not None:
+            pre = html.Tag(content, 'pre', style="font-size:80%;")
+            html.String(pre, content=trace, escape=True)
+
         return content
 
     def createLatex(self, parent, token, page):
         pass
 
-class RenderException(RenderError):
-
-    def createMaterialize(self, parent, token, page): #pylint: disable=no-self-use
-        content = RenderError.createMaterialize(self, parent, token, page)
-
-        pre = html.Tag(content, 'pre', style="font-size:80%;")
-        html.String(pre, content=unicode(token.traceback), escape=True)
-
-        return content
-
 class RenderDisabled(components.RenderComponent):
     def createHTML(self, parent, token, page):
-        return html.Tag(parent, token.tag, class_='moose-disabled')
+        return html.Tag(parent, 'p', class_='moose-disabled')

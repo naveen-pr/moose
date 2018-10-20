@@ -16,8 +16,6 @@ class Tag(NodeBase):
     """
     A node representing an HTML tag (e.g., h1, strong).
     """
-    PROPERTIES = [Property('close', default=True, ptype=bool), Property('string', ptype=unicode)]
-
     def __init__(self, parent=None, name=None, **kwargs):
         kwargs.setdefault('close', True)
         kwargs.setdefault('string', None)
@@ -73,7 +71,7 @@ class Tag(NodeBase):
         strings = []
         for node in anytree.PreOrderIter(self):
             if node.name == 'String':
-                strings.append(node.content)
+                strings.append(node['content'])
         return u' '.join(strings)
 
 class String(NodeBase):

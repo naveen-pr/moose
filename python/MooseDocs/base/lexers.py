@@ -213,9 +213,9 @@ class Lexer(object):
               object to improve error reports.
         """
         if MooseDocs.LOG_LEVEL == logging.DEBUG:
-            common.check_type('text', text, unicode, exc=exceptions.TokenizeException)
-            common.check_type('page', page, pages.Page, exc=exceptions.TokenizeException)
-            common.check_type('line', line, int, exc=exceptions.TokenizeException)
+            common.check_type('text', text, unicode)
+            common.check_type('page', page, pages.Page)
+            common.check_type('line', line, int)
 
         n = len(text)
         pos = 0
@@ -229,7 +229,6 @@ class Lexer(object):
                         obj = self.buildToken(parent, pattern, info, page)
                     except Exception as e: #pylint: disable=broad-except
                         obj = tokens.ErrorToken(parent,
-                                                page=page,
                                                 message=unicode(e.message),
                                                 traceback=traceback.format_exc())
 
@@ -301,18 +300,18 @@ class RecursiveLexer(Lexer):
 
     def buildToken(self, parent, pattern, info, page):
         """
-        Override the Lexer.buildObject method to recursively tokenize base on group names.
+        Override the Lexer.buildToken method to recursively tokenize base on group names.
         """
         if MooseDocs.LOG_LEVEL == logging.DEBUG:
             common.check_type('parent', parent, tokens.Token)
             common.check_type('info', info, LexerInformation)
 
-        obj = super(RecursiveLexer, self).buildObject(parent, pattern, info, page)
+        obj = super(RecursiveLexer, self).buildToken(parent, pattern, info, page)
 
-        if (obj is not None) and (obj is not parent) and obj.recursive:
+        if (obj is not None) and (obj is not parent) and obj.get('recursive'):
             for key, grammar in self._grammars.iteritems():
                 if key in info.keys():
                     text = info[key]
                     if text is not None:
-                        self.tokenize(obj, grammar, text, page, info.line)
+                        self.tokenize(obj, text, page, grammar, info.line)
         return obj

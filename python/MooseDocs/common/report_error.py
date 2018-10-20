@@ -12,6 +12,6 @@ def report_error(message, page, info, traceback=None, prefix=u'ERROR'):
     """
     title = '{}: {}'.format(prefix, message)
     filename = mooseutils.colorText('{}:{}\n'.format(page.source, info.line), 'RESET')
-    box = mooseutils.colorText(box(info[0], line=info.line, width=100), 'LIGHT_CYAN')
+    src = mooseutils.colorText(box(info[0], line=info.line, width=100), 'LIGHT_CYAN')
     trace = u'\n' + mooseutils.colorText(traceback, 'GREY') if traceback else ''
-    return u'\n{}\n{}{}{}\n'.format(title, filename, box, trace)
+    return u'\n{}\n{}{}{}\n'.format(title, filename, src, trace)

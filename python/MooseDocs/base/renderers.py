@@ -40,12 +40,12 @@ class Renderer(mixins.ConfigObject, mixins.ComponentObject):
         mixins.ComponentObject.__init__(self)
         self.__functions = dict()  # functions on the RenderComponent to call
 
-    def add(self, token, component):
+    def add(self, name, component):
         """
         Associate a RenderComponent object with a token type.
 
         Inputs:
-            token[type]: The token type (not instance) to associate with the supplied component.
+            name[str]: The token name (e.g., "String") to associate with the supplied component.
             compoment[RenderComponent]: The component to execute with the associated token type.
         """
         if MooseDocs.LOG_LEVEL == logging.DEBUG:
@@ -53,7 +53,7 @@ class Renderer(mixins.ConfigObject, mixins.ComponentObject):
             common.check_type("component", component, MooseDocs.base.components.RenderComponent)
         component.init(self)
         self.addComponent(component)
-        self.__functions[token] = self._method(component)
+        self.__functions[name] = self._method(component)
 
     def getRoot(self):
         """
@@ -79,7 +79,8 @@ class Renderer(mixins.ConfigObject, mixins.ComponentObject):
             el = None
             msg = common.report_error(e.message, page, token.info, traceback.format_exc(),
                                       u'RENDER ERROR')
-            LOG.error(msg)
+            with MooseDocs.base.translators.Translator.LOCK:
+                LOG.error(msg)
 
         if el is not None:
             for child in token.children:
