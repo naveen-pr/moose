@@ -187,7 +187,8 @@ class TokenComponent(Component, mixins.ReaderObject):
             parent[tokens.Token]: The parent node in the AST for the token being created.
         """
         if not self.extension.active:
-            return tokens.DisabledToken(parent, string=info[0])
+            tokens.DisabledToken(parent, string=info[0])
+            return parent
 
         # Define the settings
         defaults = self.defaultSettings()
