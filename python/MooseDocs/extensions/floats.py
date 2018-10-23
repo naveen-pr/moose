@@ -49,6 +49,11 @@ def add_caption(parent, extension, reader, page, settings):
     elif cap:
         caption = Caption(parent)
         reader.tokenize(caption, cap, page, MooseDocs.INLINE)
+
+    if caption.key:
+        tokens.Shortcut(parent.root, caption=self.key, link=u'#{}'.format(caption.key),
+                        string=u'{} {}'.format(caption.prefix.title(), caption.number))
+
     return caption
 
 def create_modal(parent, title=None, content=None, **kwargs):
@@ -80,40 +85,12 @@ def create_modal_link(parent, title=None, content=None, string=None, **kwargs):
     create_modal(parent, title, content, **kwargs)
     return link
 
-class CountToken(tokens.Token):
-    """
-    Token that maintains counts based on prefix, the Translator clears the counts prior to building.
-    """
-    PROPERTIES = [Property('prefix', ptype=unicode),
-                  Property('number', ptype=int)]
-    COUNTS = collections.defaultdict(int)
-    def __init__(self, *args, **kwargs):
-        tokens.Token.__init__(self, *args, **kwargs)
-
-class Float(tokens.Token):
-    PROPERTIES = [tokens.Property('img', default=False, ptype=bool)]
-
-class Caption(CountToken):
-    PROPERTIES = [Property("key", ptype=unicode)]
-
-    def __init__(self, *args, **kwargs):
-        CountToken.__init__(self, *args, **kwargs)
-
-        #pylint: disable=no-member
-        if self.key:
-            tokens.Shortcut(self.root, key=self.key, link=u'#{}'.format(self.key),
-                            string=u'{} {}'.format(self.prefix.title(), self.number))
-
-class ModalLink(tokens.Token):
-    PROPERTIES = [Property("bookmark", ptype=unicode, required=True),
-                  Property("bottom", ptype=bool, default=False),
-                  Property("close", ptype=bool, default=True)]
-
-class ModalLinkTitle(tokens.Token):
-    pass
-
-class ModalLinkContent(tokens.Token):
-    pass
+CountToken = tokens.newToken('CountToken', prefix=u'', number=1)
+Float = tokens.newToken('Float', img=False)
+Caption = tokens.newToken('Caption', key=u'')
+ModalLink = tokens.newToken('ModalLink', bookmark=True, bottom=False, close=True)
+ModalLinkTitle = tokens.newToken('ModalLinkTitle')
+ModalLinkContent = tokens.newToken('ModalLinkContent')
 
 class FloatExtension(components.Extension):
     """
@@ -121,6 +98,7 @@ class FloatExtension(components.Extension):
     base extension. It does not provide tables for example, just the tools to make floats
     in a uniform manner.
     """
+    COUNTS = collections.defaultdict(int)
     def extend(self, reader, renderer):
         renderer.add(Float, RenderFloat())
         renderer.add(Caption, RenderCaption())
@@ -130,14 +108,14 @@ class FloatExtension(components.Extension):
 
     def preTokenize(self, ast, page):
         """Reset float counters."""
-        CountToken.COUNTS.clear()
+        FloatExtension.COUNTS.clear()
 
     def postTokenize(self, ast, page):
         """Set float number for each counter."""
-        for node in anytree.PreOrderIter(ast, filter_=lambda n: isinstance(n, CountToken)):
+        for node in anytree.PreOrderIter(ast, filter_=lambda n: n.name == 'CountToken'):
             if node.prefix is not None:
-                CountToken.COUNTS[node.prefix] += 1
-                node.number = CountToken.COUNTS[node.prefix]
+                FloatExtension.COUNTS[node.prefix] += 1
+                node.number = FloatExtension.COUNTS[node.prefix]
 
 class RenderFloat(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use

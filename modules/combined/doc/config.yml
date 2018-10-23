@@ -31,12 +31,9 @@ Translators:
 
 Extensions:
     MooseDocs.extensions.core: default
-    MooseDocs.extensions.floats:
-        active: False
-    MooseDocs.extensions.command:
-        active: False
-    MooseDocs.extensions.include:
-        active: False
+    MooseDocs.extensions.floats: default
+    MooseDocs.extensions.command: default
+    MooseDocs.extensions.include: default
     MooseDocs.extensions.media:
         active: False
     MooseDocs.extensions.listing:

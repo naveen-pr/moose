@@ -12,16 +12,8 @@ def make_extension(**kwargs):
     """Create an instance of the Extension object."""
     return KatexExtension(**kwargs)
 
-class LatexBlockEquation(floats.CountToken):
-    r"""
-    Token for LaTeX block level equations (e.g., \begin{equation} ... \end{equation}.
-    """
-    PROPERTIES = [Property('tex', required=True, ptype=str),
-                  Property('label', ptype=unicode)]
-
-class LatexInlineEquation(tokens.Token):
-    """Token for inline equations."""
-    PROPERTIES = [Property('tex', required=True, ptype=str)]
+LatexBlockEquation = tokens.newToken('LatexBlockEquation', tex=r'', label=u'')
+LatexInlineEquation = tokens.newToken('LatexInlineEquation', tex=r'')
 
 class KatexExtension(components.Extension):
     """
