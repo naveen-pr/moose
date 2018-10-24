@@ -57,7 +57,7 @@ class ContentCommand(command.CommandComponent):
             func = lambda n: n.name == location and isinstance(n, pages.DirectoryNode)
             node = anytree.search.find(page.root, filter_=func)
             if not node:
-                raise exceptions.TokenizeException("Unable to locate the directory '{}'.", location)
+                raise exceptions.MoosdDocsException("Unable to locate the directory '{}'.", location)
 
         ContentToken(parent, node=node.fullpath)
         return parent

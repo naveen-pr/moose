@@ -67,8 +67,8 @@ class NodeBase(anytree.NodeMixin):
         String returned from this function is for screen output. This allows coloring to be
         handled automatically.
         """
-        return '{}: Properties: {}, Attributes: {}'. \
-            format(self.name, repr(self.__properties), repr(self.__attributes))
+        return '{}: Attributes: {}'. \
+            format(self.name, repr(self.__attributes))
 
     def iteritems(self):
         """Return dict key, value iterators."""

@@ -90,15 +90,16 @@ class CommandBase(components.TokenComponent):
                 obj = CommandExtension.EXTENSION_COMMANDS[(cmd[0], '*')]
             except KeyError:
                 msg = "The following command combination is unknown: '{} {}'."
-                raise common.exceptions.TokenizeException(msg.format(*cmd))
+                raise common.exceptions.MooseDocsException(msg.format(*cmd))
 
         if not obj.extension.active:
             if isinstance(self, BlockInlineCommand):
-                return tokens.DisabledToken(parent, tag='p', string=info[0])
+                tokens.DisabledToken(parent, tag='p', string=info[0])
             elif isinstance(self, BlockBlockCommand):
-                return tokens.DisabledToken(parent, tag='p', string=info[0])
+                tokens.DisabledToken(parent, tag='p', string=info[0])
             elif isinstance(self, InlineCommand):
-                return tokens.DisabledToken(parent, tag='span', string=info[0])
+                tokens.DisabledToken(parent, tag='span', string=info[0])
+            return parent
 
         # Build the token
         if obj.PARSE_SETTINGS:

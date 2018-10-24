@@ -12,14 +12,8 @@ from MooseDocs.tree.base import Property
 def make_extension(**kwargs):
     return MediaExtension(**kwargs)
 
-class Image(tokens.Token):
-    PROPERTIES = [Property('src', required=True, ptype=unicode)]
-
-class Video(tokens.Token):
-    PROPERTIES = [Property('src', required=True, ptype=unicode),
-                  Property('controls', default=True, ptype=bool),
-                  Property('autoplay', default=True, ptype=bool),
-                  Property('loop', default=True, ptype=bool)]
+Image = tokens.newToken('Image', src=u'')
+Video = tokens.newToken('Video', src=u'', controls=True, autoplay=True, loop=True)
 
 class MediaExtension(command.CommandExtension):
     """
@@ -38,8 +32,8 @@ class MediaExtension(command.CommandExtension):
         self.addCommand(reader, ImageCommand())
         self.addCommand(reader, VideoCommand())
 
-        renderer.add(Image, RenderImage())
-        renderer.add(Video, RenderVideo())
+        renderer.add('Image', RenderImage())
+        renderer.add('Video', RenderVideo())
 
 class MediaCommandBase(command.CommandComponent):
     """Base class for image and video tag creation."""
@@ -64,7 +58,7 @@ class MediaCommandBase(command.CommandComponent):
 
         flt = floats.create_float(parent, self.extension, self.reader, page, self.settings)
         self.createMedia(flt, info, page, location, **self.attributes)
-        if isinstance(flt.children[0], floats.Caption):
+        if flt.children[0].name == 'Caption':
             cap = flt.children[0]
             cap.parent = None
             cap.parent = flt
@@ -100,7 +94,7 @@ class VideoCommand(MediaCommandBase):
 class RenderImage(components.RenderComponent):
 
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
-        return html.Tag(parent, 'img', src=token.src, **token.attributes)
+        return html.Tag(parent, 'img', **token.attributes)
 
     def createMaterialize(self, parent, token, page):
         tag = self.createHTML(parent, token, page)
@@ -113,15 +107,15 @@ class RenderImage(components.RenderComponent):
 class RenderVideo(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
         video = html.Tag(parent, 'video', **token.attributes)
-        _, ext = os.path.splitext(token.src)
-        html.Tag(video, 'source', src=token.src, type_="video/{}".format(ext[1:]))
+        _, ext = os.path.splitext(token['src'])
+        html.Tag(video, 'source', src=token['src'], type_="video/{}".format(ext[1:]))
 
         video['width'] = '100%'
-        if token.controls:
+        if token['controls']:
             video['controls'] = 'controls'
-        if token.autoplay:
+        if token['autoplay']:
             video['autoplay'] = 'autoplay'
-        if token.loop:
+        if token['loop']:
             video['loop'] = 'loop'
 
     def createLatex(self, parent, token, page):

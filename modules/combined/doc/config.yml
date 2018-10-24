@@ -30,12 +30,12 @@ Translators:
     incremental_build: False
 
 Extensions:
+    #disable_defaults: True
     MooseDocs.extensions.core: default
     MooseDocs.extensions.floats: default
     MooseDocs.extensions.command: default
     MooseDocs.extensions.include: default
-    MooseDocs.extensions.media:
-        active: False
+    MooseDocs.extensions.media: default
     MooseDocs.extensions.listing:
         active: False
     MooseDocs.extensions.table:
@@ -51,8 +51,6 @@ Extensions:
     MooseDocs.extensions.katex:
         active: False
     MooseDocs.extensions.bibtex:
-        active: False
-    MooseDocs.extensions.panoptic:
         active: False
     MooseDocs.extensions.layout:
         active: False

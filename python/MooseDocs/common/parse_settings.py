@@ -60,8 +60,6 @@ def parse_settings(defaults, local, error_on_unknown=True):
         local[str]: A string of settings to be parsed.
         error_on_unknown[bool]: If True through an exception if values are provided that are not
                                 in the default list.
-        exc[Exception]: The Exception type to raise, by default it raises a TokenizeException since
-                        this function is used during the tokenization process by MooseDocs.
     """
     known = dict((k, v[0]) for k, v in copy.deepcopy(defaults).iteritems())
     settings, unknown = match_settings(known, local)

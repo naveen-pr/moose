@@ -69,7 +69,7 @@ class PlotlyScatter(command.CommandComponent):
         # Build the JSON data for plotting
         data = self.settings['data']
         if data is None:
-            raise common.exceptions.TokenizeException("The 'data' setting is required.")
+            raise common.exceptions.MooseDocsException("The 'data' setting is required.")
         data = eval(data)
 
         # Use Postprocessor file for data

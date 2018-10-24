@@ -8,12 +8,6 @@ from MooseDocs.extensions import core
 from MooseDocs.tree import tokens, html
 from MooseDocs.tree.base import Property
 
-class Float(tokens.Token):
-    PROPERTIES = [tokens.Property('id', ptype=str),
-                  tokens.Property('caption', ptype=unicode),
-                  tokens.Property('label', ptype=str, required=True)]
-
-
 def make_extension(**kwargs):
     return FloatExtension(**kwargs)
 
@@ -50,9 +44,10 @@ def add_caption(parent, extension, reader, page, settings):
         caption = Caption(parent)
         reader.tokenize(caption, cap, page, MooseDocs.INLINE)
 
-    if caption.key:
-        tokens.Shortcut(parent.root, caption=self.key, link=u'#{}'.format(caption.key),
-                        string=u'{} {}'.format(caption.prefix.title(), caption.number))
+    #key = caption.get('key', None) if caption else None
+    #if key:
+    #    tokens.Shortcut(parent, caption=key, link=u'#{}'.format(key),
+    #                    string=u'{} {}'.format(caption['prefix'].title(), caption['number']))
 
     return caption
 
@@ -85,9 +80,8 @@ def create_modal_link(parent, title=None, content=None, string=None, **kwargs):
     create_modal(parent, title, content, **kwargs)
     return link
 
-CountToken = tokens.newToken('CountToken', prefix=u'', number=1)
 Float = tokens.newToken('Float', img=False)
-Caption = tokens.newToken('Caption', key=u'')
+Caption = tokens.newToken('Caption', key=u'', prefix=u'', number=1)
 ModalLink = tokens.newToken('ModalLink', bookmark=True, bottom=False, close=True)
 ModalLinkTitle = tokens.newToken('ModalLinkTitle')
 ModalLinkContent = tokens.newToken('ModalLinkContent')
@@ -100,11 +94,11 @@ class FloatExtension(components.Extension):
     """
     COUNTS = collections.defaultdict(int)
     def extend(self, reader, renderer):
-        renderer.add(Float, RenderFloat())
-        renderer.add(Caption, RenderCaption())
-        renderer.add(ModalLink, RenderModalLink())
-        renderer.add(ModalLinkTitle, RenderModalLinkTitle())
-        renderer.add(ModalLinkContent, RenderModalLinkContent())
+        renderer.add('Float', RenderFloat())
+        renderer.add('Caption', RenderCaption())
+        renderer.add('ModalLink', RenderModalLink())
+        renderer.add('ModalLinkTitle', RenderModalLinkTitle())
+        renderer.add('ModalLinkContent', RenderModalLinkContent())
 
     def preTokenize(self, ast, page):
         """Reset float counters."""
@@ -115,7 +109,7 @@ class FloatExtension(components.Extension):
         for node in anytree.PreOrderIter(ast, filter_=lambda n: n.name == 'CountToken'):
             if node.prefix is not None:
                 FloatExtension.COUNTS[node.prefix] += 1
-                node.number = FloatExtension.COUNTS[node.prefix]
+                node.set('number', FloatExtension.COUNTS[node.prefix])
 
 class RenderFloat(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
@@ -127,7 +121,7 @@ class RenderFloat(components.RenderComponent):
         div = html.Tag(parent, 'div', **token.attributes)
         div.addClass('card')
         content = html.Tag(div, 'div')
-        if token.img:
+        if token['img']:
             content.addClass('card-image')
         else:
             content.addClass('card-content')
@@ -140,10 +134,10 @@ class RenderFloat(components.RenderComponent):
 class RenderCaption(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
         caption = html.Tag(parent, 'p', class_="moose-caption")
-
-        if token.prefix:
+        prefix = token.get('prefix', None)
+        if prefix:
             heading = html.Tag(caption, 'span', class_="moose-caption-heading")
-            html.String(heading, content=u"{} {}: ".format(token.prefix, token.number))
+            html.String(heading, content=u"{} {}: ".format(prefix, token['number']))
 
         text = html.Tag(caption, 'span', class_="moose-caption-text")
         return text

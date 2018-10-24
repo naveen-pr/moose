@@ -141,6 +141,6 @@ class InputListingCommand(FileListingCommand):
             node = hit.find(block)
             if node is None:
                 msg = "Unable to find block '{}' in {}."
-                raise exceptions.TokenizeException(msg, block, filename)
+                raise exceptions.MooseDocsException(msg, block, filename)
             out.append(unicode(node.render()))
         return '\n'.join(out)

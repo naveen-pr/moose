@@ -58,23 +58,23 @@ class ComponentSettings(command.CommandComponent):
 
     def createToken(self, parent, info, page):
         if self.settings['module'] is None:
-            raise exceptions.TokenizeException("The 'module' setting is required.")
+            raise exceptions.MooseDocsException("The 'module' setting is required.")
 
         if self.settings['object'] is None:
-            raise exceptions.TokenizeException("The 'object' setting is required.")
+            raise exceptions.MooseDocsException("The 'object' setting is required.")
 
         master = floats.create_float(parent, self.extension, self.reader, page, self.settings, **self.attributes)
         try:
             mod = importlib.import_module(self.settings['module'])
         except ImportError:
             msg = "Unable to load the '{}' module."
-            raise exceptions.TokenizeException(msg, self.settings['module'])
+            raise exceptions.MooseDocsException(msg, self.settings['module'])
 
         try:
             obj = getattr(mod, self.settings['object'])
         except AttributeError:
             msg = "Unable to load the '{}' attribute from the '{}' module."
-            raise exceptions.TokenizeException(msg, self.settings['object'],
+            raise exceptions.MooseDocsException(msg, self.settings['object'],
                                                self.settings['module'])
 
         if hasattr(obj, 'defaultSettings'):
@@ -84,7 +84,7 @@ class ComponentSettings(command.CommandComponent):
         else:
             msg = "The '{}' object in the '{}' module does not have a 'defaultSettings' or "\
                   "'defaultConfig' method."
-            raise exceptions.TokenizeException(msg, mod, obj)
+            raise exceptions.MooseDocsException(msg, mod, obj)
 
         rows = [[key, value[0], value[1]] for key, value in settings.iteritems()]
         tbl = table.builder(rows, headings=[u'Key', u'Default', u'Description'])

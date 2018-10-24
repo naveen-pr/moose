@@ -79,7 +79,7 @@ class KatexBlockEquationComponent(components.TokenComponent):
         if label and not is_numbered:
             msg = "TeX non-numbered equations (e.g., equations*) may not include a \\label, since" \
                   "it will not be possible to refer to the equation."
-            raise exceptions.TokenizeException(msg)
+            raise exceptions.MooseDocsException(msg)
 
         elif label:
             token.label = label.group('id')

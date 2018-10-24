@@ -29,6 +29,9 @@ class Page(base.NodeBase):
     Base class for input content that defines the methods called by the translator.
 
     This classes uses properties to minimize modifications after construction.
+
+    TODO: Based on how these objects are being used, I don't believe that the tree
+          is actually needed, since the tree is converted to a list on translation.
     """
     COLOR = None
 

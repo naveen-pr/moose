@@ -57,7 +57,6 @@ class SQAExtension(command.CommandExtension):
     def extend(self, reader, renderer):
         self.requires(command, alert, floats, core, materialicon)
 
-        """
         self.addCommand(reader, SQATemplateLoadCommand())
         self.addCommand(reader, SQATemplateItemCommand())
         self.addCommand(reader, SQARequirementsCommand())
@@ -70,15 +69,24 @@ class SQAExtension(command.CommandExtension):
         renderer.add(SQARequirementMatrix, RenderSQARequirementMatrix())
         renderer.add(SQARequirementMatrixItem, RenderSQARequirementMatrixItem())
         renderer.add(SQARequirementMatrixHeading, RenderSQARequirementMatrixHeading())
-        """
+
+SQADocumentItem = tokens.newToken('SQADocumentItem', key=u'')
+SQATemplateItem = tokens.newToken('SQATemplateItem', key=u'')
+SQARequirementMatrix = tokens.newToken('SQARequirementMatrix')
+SQARequirementMatrixItem = tokens.newToken('SQARequirementMatrixItem',
+                                           label=u'',
+                                           satisfied=True)
+SQARequirementMatrixHeading = tokens.newToken('SQARequirementMatrixHeading')
+SQAVandVMatrixItem = tokens.newToken('SQAVandVMatrixItem')
+SQARequirementCrossReference = tokens.newToken('SQARequirementCrossReference')
+
 """
 class SQADocumentItem(tokens.Token):
     PROPERTIES = [tokens.Property('key', ptype=unicode, required=True)]
 
 class SQATemplateItem(tokens.Token):
     PROPERTIES = [tokens.Property('key', ptype=unicode, required=True),
-                  #tokens.Property('heading', ptype=tokens.Token)
-    ]
+                  #tokens.Property('heading', ptype=tokens.Token)]
 
 class SQARequirementMatrix(tokens.OrderedList):
     PROPERTIES = []#tokens.Property('heading', ptype=tokens.Token)]
@@ -218,7 +226,7 @@ class SQARequirementsMatrixCommand(command.CommandComponent):
 
         if self.settings['prefix'] is None:
             msg = "The 'prefix' option is required."
-            raise exceptions.TokenizeException(msg)
+            raise exceptions.MooseDocsException(msg)
 
         # Extract the unordered list
         self.reader.tokenize(parent, content, page, MooseDocs.BLOCK, info.line)
@@ -228,7 +236,7 @@ class SQARequirementsMatrixCommand(command.CommandComponent):
         # Check the list type
         if not isinstance(ul, tokens.UnorderedList):
             msg = "The content is required to be an unordered list (i.e., use '-')."
-            raise exceptions.TokenizeException(msg)
+            raise exceptions.MooseDocsException(msg)
 
         # Build the matrix
         prefix = self.settings['prefix']
@@ -265,7 +273,7 @@ class SQATemplateLoadCommand(command.CommandComponent):
 
         if not os.path.exists(location):
             msg = "The template file does not exist: {}."
-            raise exceptions.TokenizeException(msg, location)
+            raise exceptions.MooseDocsException(msg, location)
 
         with codecs.open(location, 'r', encoding='utf-8') as fid:
             content = fid.read()
@@ -279,7 +287,7 @@ class SQATemplateLoadCommand(command.CommandComponent):
             key = match.group('key')
             if key not in key_values:
                 msg = "The template argument '{}' was not defined in the !sqa load command."
-                raise exceptions.TokenizeException(msg, key)
+                raise exceptions.MooseDocsException(msg, key)
 
             return key_values[key]
 

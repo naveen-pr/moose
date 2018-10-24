@@ -206,11 +206,9 @@ class Lexer(object):
             line[int]: The line number to startwith, this allows for nested calls to begin with
                        the correct line.
 
-        NOTE: If the functions attached to the Grammar object raise a TokenizeException it will
+        NOTE: If the functions attached to the Grammar object raise an Exception it will
               be caught by this object and converted into an Exception token. This allows for
-              the entire text to be tokenized and have the errors report upon completion. The
-              TokenizeException also contains information about the error, via a LexerInformation
-              object to improve error reports.
+              the entire text to be tokenized and have the errors report upon completion.
         """
         if MooseDocs.LOG_LEVEL == logging.DEBUG:
             common.check_type('text', text, unicode)

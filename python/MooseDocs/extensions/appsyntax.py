@@ -35,7 +35,7 @@ class InputParametersToken(tokens.Token):
 
         if self.show and self.hide:
             msg = "The 'show' and 'hide' properties cannot both be set."
-            raise exceptions.TokenizeException(msg)
+            raise exceptions.MooseDocsException(msg)
 
 class AppSyntaxDisabledToken(tokens.Token):
     pass
@@ -247,7 +247,7 @@ class SyntaxDescriptionCommand(SyntaxCommandBase):
             if not obj.hidden:
                 msg = "The class description is missing for {}, it can be added using the " \
                       "'addClassDescription' method from within the objects validParams function."
-                raise exceptions.TokenizeException(msg, obj.fullpath)
+                raise exceptions.MooseDocsException(msg, obj.fullpath)
             else:
                 tokens.Paragraph(parent, string=unicode(info[0]), class_='moose-error')
                 return parent

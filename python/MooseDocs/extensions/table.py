@@ -101,7 +101,7 @@ class TableComponent(components.TokenComponent):
             return self._createTable(parent, info, page)
         except Exception as e:
             msg = 'Failed to build table, the syntax is likely not correct:\n'
-            raise exceptions.TokenizeException(msg, e.message)
+            raise exceptions.MooseDocsException(msg, e.message)
 
     def _createTable(self, parent, info, page):
 
