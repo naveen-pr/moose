@@ -20,6 +20,7 @@ from MooseDocs.tree.base import NodeBase
 LOG = logging.getLogger(__name__)
 
 class Property(object):
+    # TODO: delete this, it is here just to transition to new Token generator
     def __init__(self, *args, **kwargs):
         pass
 

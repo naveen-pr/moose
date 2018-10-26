@@ -15,13 +15,27 @@ from base import NodeBase, Property
 class Tag(NodeBase):
     """
     A node representing an HTML tag (e.g., h1, strong).
+
+    Inputs:
+        parent[Tag]: The parent html Tag node.
+        name[str]: The tag name (e.g., h1 or span).
+        token[Token]: The token from which the style, id, and class shall be
+                      extracted.
+        kwargs: Key, value pairs to be added to the html attributes, if
+                'class_', 'id_', or 'style' are provided the override those
+                values within the token (if provided).
     """
-    def __init__(self, parent=None, name=None, **kwargs):
+    def __init__(self, parent=None, name=None, token=None, **kwargs):
         kwargs.setdefault('close', True)
         kwargs.setdefault('string', None)
-        kwargs['class'] = kwargs.pop('class_', u'')
-        kwargs['style'] = kwargs.pop('style_', u'')
-        kwargs['id'] = kwargs.pop('id_', u'')
+        if token is not None:
+            kwargs['class'] = kwargs.pop('class_', token.get('class', u''))
+            kwargs['style'] = kwargs.pop('style_', token.get('style', u''))
+            kwargs['id'] = kwargs.pop('id_', token.get('id', u''))
+        else:
+            kwargs['class'] = kwargs.pop('class_', u'')
+            kwargs['style'] = kwargs.pop('style_', u'')
+            kwargs['id'] = kwargs.pop('id_', u'')
         super(Tag, self).__init__(name=name, parent=parent, **kwargs)
 
         string = self.get('string', None)

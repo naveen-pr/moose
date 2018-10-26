@@ -94,7 +94,7 @@ class VideoCommand(MediaCommandBase):
 class RenderImage(components.RenderComponent):
 
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
-        return html.Tag(parent, 'img', **token.attributes)
+        return html.Tag(parent, 'img', token, src=token['src'])
 
     def createMaterialize(self, parent, token, page):
         tag = self.createHTML(parent, token, page)
@@ -106,7 +106,7 @@ class RenderImage(components.RenderComponent):
 
 class RenderVideo(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
-        video = html.Tag(parent, 'video', **token.attributes)
+        video = html.Tag(parent, 'video', token, src=token['src'])
         _, ext = os.path.splitext(token['src'])
         html.Tag(video, 'source', src=token['src'], type_="video/{}".format(ext[1:]))
 
