@@ -113,12 +113,12 @@ class FloatExtension(components.Extension):
 
 class RenderFloat(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
-        div = html.Tag(parent, 'div', **token.attributes)
+        div = html.Tag(parent, 'div', token)
         div.addClass('moose-float-div')
         return div
 
     def createMaterialize(self, parent, token, page): #pylint: disable=no-self-use
-        div = html.Tag(parent, 'div', **token.attributes)
+        div = html.Tag(parent, 'div', token)
         div.addClass('card')
         content = html.Tag(div, 'div')
         if token['img']:

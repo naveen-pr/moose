@@ -353,7 +353,7 @@ class RenderLabel(components.RenderComponent):
 class RenderCode(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
         language = 'language-{}'.format(token['language'])
-        pre = html.Tag(parent, 'pre', **token.attributes)
+        pre = html.Tag(parent, 'pre', token)
         code = html.Tag(pre, 'code', class_=language)
         html.String(code, content=token['content'], escape=token['escape'])
         return pre
@@ -368,7 +368,7 @@ class RenderShortcutLink(components.RenderComponent):
         self.__cache = dict()
 
     def createHTML(self, parent, token, page):
-        a = html.Tag(parent, 'a', **token.attributes)
+        a = html.Tag(parent, 'a', token)
         node = self.getShortcut(token)
         a['href'] = node.link
         for child in node.children:
@@ -432,7 +432,7 @@ class RenderBreak(components.RenderComponent):
 
 class RenderLink(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
-        return html.Tag(parent, 'a', href=token['url'], **token.attributes)
+        return html.Tag(parent, 'a', token, href=token['url'])
 
     def createMaterialize(self, parent, token, page):
         tag = self.createHTML(parent, token, page)
@@ -452,7 +452,7 @@ class RenderLink(components.RenderComponent):
 
 class RenderParagraph(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use,unused-argument
-        return html.Tag(parent, 'p', **token.attributes)
+        return html.Tag(parent, 'p', token)
 
     def createLatex(self, parent, token, page): #pylint: disable=no-self-use,unused-argument
         latex.CustomCommand(parent, 'par', start='\n', end=' ')
@@ -460,7 +460,7 @@ class RenderParagraph(components.RenderComponent):
 
 class RenderOrderedList(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use,unused-argument
-        return html.Tag(parent, 'ol', **token.attributes)
+        return html.Tag(parent, 'ol', token)
 
     def createMaterialize(self, parent, token, page): #pylint: disable=no-self-use
         tag = self.createHTML(parent, token, page)
@@ -473,7 +473,7 @@ class RenderOrderedList(components.RenderComponent):
 
 class RenderUnorderedList(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
-        return html.Tag(parent, 'ul', **token.attributes)
+        return html.Tag(parent, 'ul', token)
 
     def createMaterialize(self, parent, token, page): #pylint: disable=no-self-use
         tag = self.createHTML(parent, token, page)
@@ -485,7 +485,7 @@ class RenderUnorderedList(components.RenderComponent):
 
 class RenderListItem(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
-        return html.Tag(parent, 'li', **token.attributes)
+        return html.Tag(parent, 'li', token)
 
     def createLatex(self, parent, token, page): #pylint: disable=no-self-use,unused-argument
         latex.Command(parent, 'item')
@@ -507,28 +507,28 @@ class RenderSpace(components.RenderComponent):
 
 class RenderQuote(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
-        return html.Tag(parent, 'blockquote', **token.attributes)
+        return html.Tag(parent, 'blockquote', token)
 
     def createLatex(self, parent, token, page): #pylint: disable=no-self-use,unused-argument
         return latex.Environment(parent, 'quote', after_begin='')
 
 class RenderStrong(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
-        return html.Tag(parent, 'strong', **token.attributes)
+        return html.Tag(parent, 'strong', token)
 
     def createLatex(self, parent, token, page): #pylint: disable=no-self-use,unused-argument
         return latex.Command(parent, 'textbf')
 
 class RenderEmphasis(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
-        return html.Tag(parent, 'em', **token.attributes)
+        return html.Tag(parent, 'em', token)
 
     def createLatex(self, parent, token, page): #pylint: disable=no-self-use,unused-argument
         return latex.Command(parent, 'emph')
 
 class RenderUnderline(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
-        return html.Tag(parent, 'u', **token.attributes)
+        return html.Tag(parent, 'u', token)
 
     def createLatex(self, parent, token, page): #pylint: disable=no-self-use,unused-argument
         for n in parent.path:
@@ -542,7 +542,7 @@ class RenderUnderline(components.RenderComponent):
 
 class RenderStrikethrough(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
-        return html.Tag(parent, 'strike', **token.attributes)
+        return html.Tag(parent, 'strike', token)
 
     def createLatex(self, parent, token, page): #pylint: disable=no-self-use,unused-argument
 
@@ -557,14 +557,14 @@ class RenderStrikethrough(components.RenderComponent):
 
 class RenderSuperscript(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
-        return html.Tag(parent, 'sup', **token.attributes)
+        return html.Tag(parent, 'sup', token)
 
     def createLatex(self, parent, token, page): #pylint: disable=no-self-use,unused-argument
         return latex.Command(parent, 'textsuperscript')
 
 class RenderSubscript(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
-        return html.Tag(parent, 'sub', **token.attributes)
+        return html.Tag(parent, 'sub', token)
 
     def createLatex(self, parent, token, page): #pylint: disable=no-self-use,unused-argument
         return latex.Command(parent, 'textsubscript')
@@ -581,7 +581,8 @@ class RenderPunctuation(RenderString):
 
 class RenderError(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
-        div = html.Tag(parent, 'div', class_="moose-exception", **token.attributes)
+        div = html.Tag(parent, 'div', token)
+        div.addClass("moose-exception")
         html.String(div, content=token.info[0])
         return div
 
