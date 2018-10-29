@@ -26,8 +26,7 @@ Extensions:
     MooseDocs.extensions.include: default
     MooseDocs.extensions.media: default
     MooseDocs.extensions.listing: default
-    MooseDocs.extensions.autolink:
-        active: False
+    MooseDocs.extensions.autolink: default
     MooseDocs.extensions.table: default
     MooseDocs.extensions.devel: default
     MooseDocs.extensions.package: default
@@ -36,19 +35,14 @@ Extensions:
     MooseDocs.extensions.bibtex: default
     MooseDocs.extensions.materialicon: default
     MooseDocs.extensions.layout: default
-    MooseDocs.extensions.content:
-        active: False
-    MooseDocs.extensions.config:
-        active: False
-    MooseDocs.extensions.plotly:
-        active: False
+    MooseDocs.extensions.config: default
+    MooseDocs.extensions.content: default
+    MooseDocs.extensions.plotly: default
     MooseDocs.extensions.acronym:
-        active: False
         acronyms:
             INL: Idaho National Laboratory
             MTU: Michigan Technological University
     MooseDocs.extensions.common:
-        active: False
         shortcuts:
             MOOSE: https:://mooseframework.org
             libMesh: https://libmesh.github.io/

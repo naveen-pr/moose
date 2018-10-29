@@ -1,4 +1,3 @@
-import copy
 import anytree
 import MooseDocs
 
@@ -12,16 +11,24 @@ def find_heading(page, ast, bookmark=None):
         ast[tokens.Token]: The AST from the given page to search.
         bookmark[unicode]: The "id" for the heading.
     """
-    if ast is None:
-        return None
+    if bookmark is not None:
+        func = lambda n: (n.name == 'Heading') and (n['id'] == bookmark)
+    else:
+        func = lambda n: n.name == 'Heading'
 
+    for node in anytree.PreOrderIter(ast, filter_=func):
+        return node.copy()
+
+
+"""
     try:
         return copy.copy(HEADING_CACHE[(page.fullpath, bookmark)])
     except KeyError:
         if bookmark is not None:
-            func = lambda n: isinstance(n, MooseDocs.tree.tokens.Heading) and (n['id'] == bookmark)
+            func = lambda n: (n.name == 'Heading') and (n['id'] == bookmark)
         else:
-            func = lambda n: isinstance(n, MooseDocs.tree.tokens.Heading)
+            func = lambda n: n.name == 'Heading'
         for node in anytree.PreOrderIter(ast, filter_=func):
             HEADING_CACHE[(page.fullpath, bookmark)] = node
             return copy.copy(node)
+"""

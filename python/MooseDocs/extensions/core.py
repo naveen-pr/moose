@@ -107,7 +107,7 @@ class Code(components.TokenComponent):
         if args and ('=' not in args[0]):
             self.settings['language'] = args[0]
 
-        return tokens.Code(parent, code=info['code'], language=self.settings['language'],
+        return tokens.Code(parent, content=info['code'], language=self.settings['language'],
                            **self.attributes)
 
 class Quote(components.TokenComponent):
@@ -370,7 +370,7 @@ class RenderShortcutLink(components.RenderComponent):
     def createHTML(self, parent, token, page):
         a = html.Tag(parent, 'a', token)
         node = self.getShortcut(token)
-        a['href'] = node.link
+        a['href'] = node['link']
         for child in node.children:
             self.renderer.render(a, child, page)
         return a

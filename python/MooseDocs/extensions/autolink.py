@@ -40,8 +40,8 @@ class AutoLinkExtension(components.Extension):
         reader.addInline(PageLinkComponent(), location='=Link')
         reader.addInline(PageShortcutLinkComponent(), location='=ShortcutLink')
 
-        renderer.add(LocalLink, RenderLocalLink())
-        renderer.add(AutoLink, RenderAutoLink())
+        renderer.add('LocalLink', RenderLocalLink())
+        renderer.add('AutoLink', RenderAutoLink())
 
 class PageShortcutLinkComponent(core.ShortcutLink):
     """
@@ -133,23 +133,18 @@ class RenderAutoLink(components.RenderComponent):
     """
 
     def createHTML(self, parent, token, page):
+
         desired = common.find_page(page.root, token['page'])
-        #if desired.ast is None:
-        #    msg = "The located page, {}, does not contain an AST."
-        #    raise exceptions.MooseDocsException(msg, desired.source)
+        bookmark = token['bookmark']
 
         url = unicode(desired.relativeDestination(page))
-        if token.bookmark is not None:
-            url += '#{}'.format(token.bookmark)
+        if bookmark is not None:
+            url += '#{}'.format(bookmark)
 
-        link = tokens.Link(token.parent, url=url)
-        if token.children:
-            for child in token.children:
-                child.parent = link
-
-        else:
+        link = tokens.Link(None, url=url)
+        if not token.children:
             ast = self.getSyntaxTree(desired)
-            heading = common.find_heading(desired, ast, token['bookmark'])
+            heading = common.find_heading(desired, ast, bookmark)
             if heading is not None:
                 for child in heading:
                     child.parent = link

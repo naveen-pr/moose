@@ -47,14 +47,9 @@ Extensions:
     MooseDocs.extensions.bibtex: default
     MooseDocs.extensions.materialicon: default
     MooseDocs.extensions.layout: default
-    MooseDocs.extensions.config:
-        active: False
-    MooseDocs.extensions.content:
-        active: False
-    MooseDocs.extensions.plotly:
-        active: False
-    MooseDocs.extensions.appsyntax:
-        active: False
+    MooseDocs.extensions.config: default
+    MooseDocs.extensions.content: default
+    MooseDocs.extensions.plotly: default
     MooseDocs.extensions.appsyntax:
         active: False
         executable: ${MOOSE_DIR}/modules/combined

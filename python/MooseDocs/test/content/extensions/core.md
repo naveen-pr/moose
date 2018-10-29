@@ -122,7 +122,7 @@ for i in range(10):
 12345. Twelve thousand *three* hundred and forty-five
 12345. Twelve thousand three hundred and forty-six
 
-       1. A nested item with a +huge+ number.
+       1. A nested item within a +huge+ number.
 
 ### Nested lists
 

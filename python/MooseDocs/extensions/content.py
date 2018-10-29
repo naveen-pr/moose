@@ -12,15 +12,8 @@ from MooseDocs.extensions import command
 def make_extension(**kwargs):
     return ContentExtension(**kwargs)
 
-class ContentToken(tokens.Token):
-    """
-    Token for source code tree for the supplied page node object.
-    """
-    PROPERTIES = [tokens.Property('node', ptype=str, required=True)]
-
-class AtoZToken(tokens.Token):
-    PROPERTIES = [tokens.Property('level', ptype=int, required=True),
-                  tokens.Property('buttons', ptype=bool, default=True)]
+ContentToken = tokens.newToken('ContentToken', node=u'')
+AtoZToken = tokens.newToken('AtoZToken', level=None, buttons=bool)
 
 class ContentExtension(command.CommandExtension):
     """
@@ -35,8 +28,8 @@ class ContentExtension(command.CommandExtension):
         self.requires(command)
         self.addCommand(reader, ContentCommand())
         self.addCommand(reader, AtoZCommand())
-        renderer.add(ContentToken, RenderContent())
-        renderer.add(AtoZToken, RenderAtoZ())
+        renderer.add('ContentToken', RenderContent())
+        renderer.add('AtoZToken', RenderAtoZ())
 
 class ContentCommand(command.CommandComponent):
     COMMAND = 'contents' #TODO: Change this to content after format is working
@@ -74,12 +67,12 @@ class AtoZCommand(command.CommandComponent):
         return settings
 
     def createToken(self, parent, info, page):
-        return parent
-        #return AtoZToken(parent, level=self.settings['level'], buttons=self.settings['buttons'])
+        #return parent
+        return AtoZToken(parent, level=self.settings['level'], buttons=self.settings['buttons'])
 
 class RenderContent(components.RenderComponent):
     def createHTML(self, parent, token, page):
-        node = common.find_page(page.root, token.node)
+        node = common.find_page(page.root, token['node'])
         self._dump(parent, node, page)
 
     def _dump(self, parent, node, page, level=2):
@@ -139,7 +132,7 @@ class RenderAtoZ(components.RenderComponent):
 
     def createMaterialize(self, parent, token, page):
 
-        # Initalized alphabtized storage
+        # Initalized alphabetized storage
         headings = dict()
         for letter in 'ABCDEFGHIJKLNMOPQRSTUVWXYZ':
             headings[letter] = dict()
@@ -162,7 +155,7 @@ class RenderAtoZ(components.RenderComponent):
 
         # Buttons
         buttons = html.Tag(parent, 'div', class_='moose-a-to-z-buttons')
-        if not token.buttons:
+        if not token['buttons']:
             buttons.parent = None
 
         # Build lists
@@ -177,7 +170,7 @@ class RenderAtoZ(components.RenderComponent):
                 btn.addClass('disabled')
                 continue
 
-            h = html.Tag(parent, 'h{}'.format(token.level),
+            h = html.Tag(parent, 'h{}'.format(token['level']),
                          class_='moose-a-to-z',
                          id_=unicode(id_),
                          string=unicode(letter))

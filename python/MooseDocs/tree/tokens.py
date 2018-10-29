@@ -11,7 +11,8 @@ import collections
 import logging
 import json
 import mooseutils
-
+import anytree
+import copy
 import MooseDocs
 from MooseDocs import common
 from MooseDocs.common import exceptions
@@ -36,8 +37,9 @@ def newToken(name, **defaults):
     def tokenGenerator(parent, **kwargs):
         if MooseDocs.LOG_LEVEL == logging.DEBUG:
             pass # Future consistency checking
-        defaults.update(**kwargs)
-        return Token(name, parent, **defaults)
+        inputs = copy.copy(defaults)
+        inputs.update(**kwargs)
+        return Token(name, parent, **inputs)
 
     return tokenGenerator
 
@@ -84,8 +86,17 @@ class Token(NodeBase):
         strings = []
         for node in anytree.PreOrderIter(self):
             if node.name == 'String':
-                strings.append(node.content)
+                strings.append(node['content'])
         return u' '.join(strings)
+
+    def copy(self, _parent=None):
+        """
+        Create a copy of this node. This returns an equivalent root node (parent==None).
+        """
+        tok = Token(self.name, _parent, **self.attributes)
+        for child in self.children:
+            child.copy(_parent=tok)
+        return tok
 
     def write(self, _raw=False): #pylint: disable=arguments-differ
         """
@@ -116,7 +127,7 @@ ShortcutLink = newToken(u'ShortcutLink', key=u'')
 Monospace = newToken(u'Monospace', content=u'')
 Strong = newToken(u'Strong')
 Emphasis = newToken(u'Emphasis')
-Underline = newToken(u'UnderLine')
+Underline = newToken(u'Underline')
 Strikethrough = newToken(u'Strikethrough')
 Quote = newToken(u'Quote')
 Superscript = newToken(u'Superscript')

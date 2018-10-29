@@ -12,10 +12,7 @@ from MooseDocs.tree import tokens, html
 def make_extension(**kwargs):
     return PlotlyExtension(**kwargs)
 
-class ScatterToken(tokens.Token):
-    """Token for scatter plots."""
-    PROPERTIES = [tokens.Property('data', ptype=list, required=True),
-                  tokens.Property('layout', ptype=dict, default=dict())]
+ScatterToken = tokens.newToken('ScatterToken', data=[], layout=dict())
 
 class PlotlyExtension(command.CommandExtension):
     """
@@ -31,7 +28,7 @@ class PlotlyExtension(command.CommandExtension):
     def extend(self, reader, renderer):
         self.requires(command, floats)
         self.addCommand(reader, PlotlyScatter())
-        renderer.add(ScatterToken, RenderScatter())
+        renderer.add('ScatterToken', RenderScatter())
 
     def postRender(self, result, page): #pylint: disable=unused-argument
         """Adds the plotly javascript library to the <head> tag."""
@@ -84,7 +81,7 @@ class PlotlyScatter(command.CommandComponent):
 
         flt = floats.create_float(parent, self.extension, self.reader, page, self.settings)
         plt = ScatterToken(flt, data=data, layout=eval(self.settings['layout']))
-        if isinstance(flt.children[0], floats.Caption):
+        if flt.children[0].name == 'Caption':
             cap = flt.children[0]
             cap.parent = None
             cap.parent = flt
@@ -125,6 +122,6 @@ class RenderScatter(components.RenderComponent):
     TEMPLATE = PlotlyTemplate('scatter.js')
     def createHTML(self, parent, token, page):
         plot_id = unicode(uuid.uuid4())
-        content = self.TEMPLATE(id_=plot_id, data=repr(token.data), layout=repr(token.layout))
+        content = self.TEMPLATE(id_=plot_id, data=repr(token['data']), layout=repr(token['layout']))
         html.Tag(parent, 'div', id_=plot_id)
         html.Tag(parent, 'script', string=content)

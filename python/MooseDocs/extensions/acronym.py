@@ -10,15 +10,8 @@ def make_extension(**kwargs):
     return AcronymExtension(**kwargs)
 
 AcronymItem = collections.namedtuple('AcronymItem', 'key name used')
-
-class AcronymToken(tokens.Token):
-    """Token used for inline acronym use."""
-    PROPERTIES = [tokens.Property('acronym', required=True, ptype=unicode)]
-
-class AcronymListToken(tokens.Token):
-    """Token for acronym lists."""
-    PROPERTIES = [tokens.Property('complete', default=False, ptype=bool),
-                  tokens.Property('heading', default=True, ptype=bool)]
+AcronymToken = tokens.newToken('AcronymToken', acronym=u'')
+AcronymListToken = tokens.newToken('AcronymListToken', heading=True)
 
 class AcronymExtension(command.CommandExtension):
     """
@@ -74,8 +67,8 @@ class AcronymExtension(command.CommandExtension):
         self.requires(command, table, floats)
         self.addCommand(reader, AcronymComponent())
         self.addCommand(reader, AcronymListComponent())
-        renderer.add(AcronymToken, RenderAcronymToken())
-        renderer.add(AcronymListToken, RenderAcronymListToken())
+        renderer.add('AcronymToken', RenderAcronymToken())
+        renderer.add('AcronymListToken', RenderAcronymListToken())
 
 class AcronymComponent(command.CommandComponent):
     COMMAND = 'acro'
@@ -100,7 +93,8 @@ class AcronymListComponent(command.CommandComponent):
         return settings
 
     def createToken(self, parent, info, page):
-        flt = floats.create_float(parent, self.extension, self.reader, page, self.settings, **self.attributes)
+        flt = floats.create_float(parent, self.extension, self.reader, page, self.settings,
+                                  **self.attributes)
         AcronymListToken(flt,
                          complete=self.settings['complete'],
                          heading=self.settings['heading'])
@@ -109,10 +103,10 @@ class AcronymListComponent(command.CommandComponent):
 class RenderAcronymToken(components.RenderComponent):
 
     def _createSpan(self, parent, token, page):
-        acro = self.extension.getAcronym(token.acronym)
+        acro = self.extension.getAcronym(token['acronym'])
         if acro is None:
             msg = "The acronym '{}' was not found."
-            raise exceptions.RenderException(token.info, msg, token.acronym)
+            raise exceptions.MooseDocsException(msg, token['acronym'])
 
         content = unicode(acro.key) if acro.used else u'{} ({})'.format(acro.name, acro.key)
         return html.Tag(parent, 'span', string=content), acro
@@ -135,10 +129,10 @@ class RenderAcronymListToken(components.RenderComponent):
 
     def createHTML(self, parent, token, page):
         rows = []
-        for key, value in self.extension.getAcronyms(token.complete).iteritems():
+        for key, value in self.extension.getAcronyms(True).iteritems():
             rows.append([key, value])
 
-        heading = ['Acronym', 'Description'] if token.heading else None
+        heading = ['Acronym', 'Description'] if token['heading'] else None
         tbl = table.builder(rows, heading)
         self.renderer.render(parent, tbl, page)
 

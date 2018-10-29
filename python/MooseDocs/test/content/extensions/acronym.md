@@ -1,5 +1,7 @@
 # Acronym Extension
 
+!acronym list
+
 !!acro INL!!
 
 !!acro MTU!!
