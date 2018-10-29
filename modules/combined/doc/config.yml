@@ -36,8 +36,7 @@ Extensions:
     MooseDocs.extensions.command: default
     MooseDocs.extensions.include: default
     MooseDocs.extensions.media: default
-    MooseDocs.extensions.listing:
-        active: False
+    MooseDocs.extensions.listing: default
     MooseDocs.extensions.table:
         active: False
     MooseDocs.extensions.autolink:

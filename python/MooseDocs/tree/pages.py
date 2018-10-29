@@ -43,7 +43,7 @@ class Page(base.NodeBase):
         self._source = source
 
         # Complete path of the node
-        self._fullpath = os.path.join(self.parent.fullpath, self.name) if self.parent else self.name
+        self._fullpath = None
 
         # List of page names that depend on this page
         self._dependencies = set()
@@ -59,6 +59,8 @@ class Page(base.NodeBase):
 
     @property
     def fullpath(self):
+        if self._fullpath is None:
+            self._fullpath = os.path.join(*[n.name for n in self.path])
         return self._fullpath
 
     @property

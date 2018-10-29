@@ -25,7 +25,6 @@ class ListingExtension(command.CommandExtension):
         return config
 
     def extend(self, reader, renderer):
-
         self.requires(command, floats)
         self.addCommand(reader, LocalListingCommand())
         self.addCommand(reader, FileListingCommand())

@@ -148,11 +148,11 @@ class RenderCaption(components.RenderComponent):
 class RenderModalLink(core.RenderLink):
     def createMaterialize(self, parent, token, page):
 
-        cls = "modal bottom-sheet" if token.bottom else "modal"
-        modal = html.Tag(parent, 'div', class_=cls, id_=token.bookmark)
+        cls = "modal bottom-sheet" if token['bottom'] else "modal"
+        modal = html.Tag(parent, 'div', class_=cls, id_=token['bookmark'])
         modal_content = html.Tag(modal, 'div', class_="modal-content")
 
-        if token.close:
+        if token['close']:
             footer = html.Tag(modal, 'div', class_='modal-footer')
             html.Tag(footer, 'a', class_='modal-close btn-flat', string=u'Close')
         return modal_content
