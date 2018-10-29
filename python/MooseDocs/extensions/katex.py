@@ -12,7 +12,12 @@ def make_extension(**kwargs):
     """Create an instance of the Extension object."""
     return KatexExtension(**kwargs)
 
-LatexBlockEquation = tokens.newToken('LatexBlockEquation', tex=r'', label=u'', bookmark=None)
+LatexBlockEquation = tokens.newToken('LatexBlockEquation',
+                                     tex=r'',
+                                     label=u'',
+                                     number=None,
+                                     numbered=True,
+                                     bookmark=None)
 LatexInlineEquation = tokens.newToken('LatexInlineEquation', tex=r'', bookmark=None)
 
 class KatexExtension(components.Extension):
@@ -36,6 +41,18 @@ class KatexExtension(components.Extension):
         renderer.add('LatexBlockEquation', RenderLatexEquation())
         renderer.add('LatexInlineEquation', RenderLatexEquation())
 
+    def postTokenize(self, ast, page):
+        count = 0
+        func = lambda n: (n.name == 'LatexBlockEquation') and n['numbered']
+        for node in anytree.PreOrderIter(ast, filter_=func):
+            count += 1
+            node.set('number', count)
+            if node['label']:
+                tokens.Shortcut(ast,
+                                key=node['label'],
+                                string='{} ({})'.format(self.get('prefix'), count),
+                                link=u'#{}'.format(node['bookmark']))
+
 class KatexBlockEquationComponent(components.TokenComponent):
     """
     Component for reading LaTeX block equations.
@@ -57,9 +74,7 @@ class KatexBlockEquationComponent(components.TokenComponent):
 
         # Build the token
         is_numbered = not info['cmd'].endswith('*')
-        token = LatexBlockEquation(parent, tex=tex, bookmark=eq_id)
-        if is_numbered: # Add caption for counting equations with floats extension
-            floats.Caption(token, prefix=unicode(self.extension.get('prefix')))
+        token = LatexBlockEquation(parent, tex=tex, bookmark=eq_id, numbered=is_numbered)
 
         # Add a label
         label = self.LABEL_RE.search(info['equation'])
@@ -71,7 +86,6 @@ class KatexBlockEquationComponent(components.TokenComponent):
         elif label:
             token.set('label', label.group('id'))
             token.set('tex', token['tex'].replace(label.group().encode('ascii'), ''))
-            tokens.Shortcut(parent.root, key=token['label'], link=u'#{}'.format(eq_id))
 
         return parent
 
@@ -110,10 +124,9 @@ class RenderLatexEquation(components.RenderComponent):
             html.Tag(div, 'span', class_='moose-katex-equation table-cell',
                      id_=token['bookmark'],
                      **token.attributes)
-            if token.children:
+            if token['numbered']:
                 num = html.Tag(div, 'span', class_='moose-katex-equation-number')
-                html.String(num, content=u'({})'.format(token.children[0]['number']))
-                token.children[0].parent = None # Remove so caption doesn't appear
+                html.String(num, content=u'({})'.format(token['number']))
 
         # Build the KaTeX script
         script = html.Tag(div, 'script')

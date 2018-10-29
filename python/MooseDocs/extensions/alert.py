@@ -28,9 +28,9 @@ class AlertExtension(command.CommandExtension):
     def extend(self, reader, renderer):
         self.requires(command)
         self.addCommand(reader, AlertCommand())
-        renderer.add(AlertToken, RenderAlertToken())
-        renderer.add(AlertTitle, RenderAlertTitle())
-        renderer.add(AlertContent, RenderAlertContent())
+        renderer.add('AlertToken', RenderAlertToken())
+        renderer.add('AlertTitle', RenderAlertTitle())
+        renderer.add('AlertContent', RenderAlertContent())
 
 class AlertCommand(command.CommandComponent):
     COMMAND = 'alert'
@@ -86,7 +86,7 @@ class RenderAlertContent(components.RenderComponent):
         card_content = html.Tag(parent, 'div', class_='card-content')
         content = html.Tag(card_content, 'div', class_='moose-alert-content')
 
-        if token.icon and (token.brand == 'construction'):
+        if token['icon'] and (token['brand'] == 'construction'):
             src = os.path.relpath('media/under-construction.gif',
                                   os.path.dirname(page.local))
             html.Tag(content, 'img', class_='moose-alert-construction-img', src=src)
@@ -97,18 +97,13 @@ class RenderAlertTitle(components.RenderComponent):
 
     def createMaterialize(self, parent, token, page):
 
-        title = None
-        if token.prefix:# or token.title:
-            title = html.Tag(parent, 'div', class_='card-title moose-alert-title')
-
-            prefix = token.get('prefix', None)
-            if prefix is None:
-                brand = token['brand']
-                if brand == u'construction':
-                    brand = u'under construction'
-                prefix = html.Tag(title, 'span', string=brand, class_='moose-alert-title-brand')
-
-            if token.children and prefix:
-                prefix(0).set('content', u':')
+        title = html.Tag(parent, 'div', class_='card-title moose-alert-title')
+        if token.get('prefix'):
+            brand = token['brand']
+            if brand == u'construction':
+                brand = u'under construction'
+            prefix = html.Tag(title, 'span', string=brand, class_='moose-alert-title-brand')
+            if token.children:
+                html.String(prefix, content=u':')
 
         return title

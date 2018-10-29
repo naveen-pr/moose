@@ -30,26 +30,6 @@ Translators:
     incremental_build: False
 
 Extensions:
-    #disable_defaults: True
-    MooseDocs.extensions.core: default
-    MooseDocs.extensions.floats: default
-    MooseDocs.extensions.command: default
-    MooseDocs.extensions.include: default
-    MooseDocs.extensions.media: default
-    MooseDocs.extensions.listing: default
-    MooseDocs.extensions.table: default
-    MooseDocs.extensions.autolink:
-        active: False
-    MooseDocs.extensions.devel: default
-    MooseDocs.extensions.package: default
-    MooseDocs.extensions.alert: default
-    MooseDocs.extensions.katex: default
-    MooseDocs.extensions.bibtex: default
-    MooseDocs.extensions.materialicon: default
-    MooseDocs.extensions.layout: default
-    MooseDocs.extensions.config: default
-    MooseDocs.extensions.content: default
-    MooseDocs.extensions.plotly: default
     MooseDocs.extensions.appsyntax:
         active: False
         executable: ${MOOSE_DIR}/modules/combined
@@ -92,7 +72,6 @@ Extensions:
             #tensor_mechanics: !include modules/tensor_mechanics/doc/remove.yml
             #xfem: !include modules/xfem/doc/remove.yml
     MooseDocs.extensions.common:
-        active: False
         shortcuts: !include framework/doc/globals.yml
     MooseDocs.extensions.acronym:
         active: False

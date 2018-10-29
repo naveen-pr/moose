@@ -22,6 +22,19 @@ LOG = logging.getLogger(__name__)
 def make_extension(**kwargs):
     return AppSyntaxExtension(**kwargs)
 
+InputParametersToken = tokens.newToken('InputParametersToken',
+                                       parameters=dict(),
+                                       level=2,
+                                       groups=list(),
+                                       hide=set(),
+                                       show=set(),
+                                       visible=set())
+
+SyntaxList = tokens.newToken('SyntaxList')
+SyntaxListItem = tokens.newToken('SyntaxListItem', header=False)
+DatabaseListToken = tokens.newToken('DatabaseListToken', level=2)
+
+"""
 class InputParametersToken(tokens.Token):
     PROPERTIES = [tokens.Property('parameters', ptype=dict, required=True),
                   tokens.Property('level', default=2, ptype=int),
@@ -48,6 +61,7 @@ class SyntaxListItem(tokens.Token):
 
 class DatabaseListToken(tokens.Token):
     PROPERTIES = [tokens.Property('level', default=2, ptype=int)]
+"""
 
 class AppSyntaxExtension(command.CommandExtension):
 
@@ -188,9 +202,9 @@ class AppSyntaxExtension(command.CommandExtension):
         self.addCommand(reader, SyntaxListCommand())
         self.addCommand(reader, SyntaxCompleteCommand())
 
-        renderer.add(InputParametersToken, RenderInputParametersToken())
-        renderer.add(SyntaxList, RenderSyntaxList())
-        renderer.add(SyntaxListItem, RenderSyntaxListItem())
+        renderer.add('InputParametersToken', RenderInputParametersToken())
+        renderer.add('SyntaxList', RenderSyntaxList())
+        renderer.add('SyntaxListItem', RenderSyntaxListItem())
 
 class SyntaxCommandBase(command.CommandComponent):
     NODE_TYPE = None
@@ -485,16 +499,16 @@ class RenderInputParametersToken(components.RenderComponent):
 
     def createMaterialize(self, parent, token, page):
 
-        groups = self._getParameters(token, token.parameters)
+        groups = self._getParameters(token, token['parameters'])
         for group, params in groups.iteritems():
 
             if not params:
                 continue
 
             if len(groups) > 1: # only create a sub-section if more than one exists
-                h = html.Tag(parent, 'h{}'.format(token.level + 1),
+                h = html.Tag(parent, 'h{}'.format(token['level'] + 1),
                              string=unicode('{} Parameters'.format(group.title())))
-                if group.lower() in token.visible:
+                if group.lower() in token['visible']:
                     h['data-details-open'] = 'open'
                 else:
                     h['data-details-open'] = 'close'
@@ -515,8 +529,8 @@ class RenderInputParametersToken(components.RenderComponent):
 
         # Build the list of groups to display
         groups = collections.OrderedDict()
-        if token.groups:
-            for group in token.groups:
+        if token['groups']:
+            for group in token['groups']:
                 groups[group] = dict()
 
         else:

@@ -48,7 +48,7 @@ class LocalListingCommand(command.CommandComponent):
         flt = floats.create_float(parent, self.extension, self.reader, page, self.settings)
         content = info['inline'] if 'inline' in info else info['block']
         tokens.Code(flt, style="max-height:{};".format(self.settings['max-height']),
-                    language=self.settings['language'], code=content)
+                    language=self.settings['language'], content=content)
         return parent
 
 class FileListingCommand(LocalListingCommand):
@@ -75,7 +75,7 @@ class FileListingCommand(LocalListingCommand):
         content = self.extractContent(filename)
         lang = lang if lang else common.get_language(filename)
         tokens.Code(flt, style="max-height:{};".format(self.settings['max-height']),
-                    code=content, language=lang)
+                    content=content, language=lang)
 
         # Add bottom modal
         if self.settings['link']:
@@ -88,7 +88,7 @@ class FileListingCommand(LocalListingCommand):
             content, _ = common.extractContent(content, settings)
 
             # Create modal for display the files a popup
-            code = tokens.Code(None, language=lang, code=content)
+            code = tokens.Code(None, language=lang, content=content)
             link = floats.create_modal_link(flt,
                                             url=unicode(rel_filename),
                                             content=code,

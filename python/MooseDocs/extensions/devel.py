@@ -39,7 +39,7 @@ class Example(command.CommandComponent):
     def createToken(self, parent, info, page):
         master = floats.create_float(parent, self.extension, self.reader, page, self.settings, **self.attributes)
         data = info['block'] if 'block' in info else match['inline']
-        tokens.Code(master, code=data)
+        tokens.Code(master, content=data)
         return master
 
 class ComponentSettings(command.CommandComponent):
