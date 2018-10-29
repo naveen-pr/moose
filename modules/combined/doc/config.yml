@@ -45,11 +45,10 @@ Extensions:
     MooseDocs.extensions.alert: default
     MooseDocs.extensions.katex: default
     MooseDocs.extensions.bibtex: default
+    MooseDocs.extensions.materialicon: default
     MooseDocs.extensions.layout:
         active: False
     MooseDocs.extensions.config:
-        active: False
-    MooseDocs.extensions.materialicon:
         active: False
     MooseDocs.extensions.content:
         active: False

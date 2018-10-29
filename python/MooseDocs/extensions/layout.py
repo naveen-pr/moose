@@ -7,11 +7,8 @@ from MooseDocs.tree.base import Property
 def make_extension(**kwargs):
     return LayoutExtension(**kwargs)
 
-class ColumnToken(tokens.Token):
-    PROPERTIES = [Property('width', ptype=unicode, required=False)]
-
-class RowToken(tokens.Token):
-    pass
+ColumnToken = tokens.newToken('ColumnToken', width=u'')
+RawToken = tokens.newToken('RowToken')
 
 class LayoutExtension(command.CommandExtension):
     """
@@ -30,8 +27,8 @@ class LayoutExtension(command.CommandExtension):
         self.addCommand(reader, RowCommand())
         self.addCommand(reader, ColumnCommand())
 
-        renderer.add(ColumnToken, RenderColumnToken())
-        renderer.add(RowToken, RenderRowToken())
+        renderer.add('ColumnToken', RenderColumnToken())
+        renderer.add('RowToken', RenderRowToken())
 
 class RowCommand(command.CommandComponent):
     COMMAND = 'row'
