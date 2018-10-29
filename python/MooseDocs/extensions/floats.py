@@ -13,10 +13,14 @@ def make_extension(**kwargs):
 
 def create_float(parent, extension, reader, page, settings, **kwargs):
     """Helper for optionally creating a float based on the existence of caption and/or id."""
-    cap = add_caption(None, extension, reader, page, settings)
+    cap = _add_caption(None, extension, reader, page, settings)
     if cap:
         flt = Float(parent, **kwargs)
         cap.parent = flt
+        key = cap.get('key')
+        if key:
+            tokens.Shortcut(parent.root, key=key, link=u'#{}'.format(key),
+                            string=u'{} {}'.format(cap['prefix'].title(), cap['number']))
         return flt
     return parent
 
@@ -27,7 +31,7 @@ def caption_settings():
     settings['prefix'] = (None, "The numbered caption label to include prior to the caption text.")
     return settings
 
-def add_caption(parent, extension, reader, page, settings):
+def _add_caption(parent, extension, reader, page, settings):
     """Helper for adding captions to float tokens."""
     cap = settings['caption']
     key = settings['id']
@@ -43,12 +47,6 @@ def add_caption(parent, extension, reader, page, settings):
     elif cap:
         caption = Caption(parent)
         reader.tokenize(caption, cap, page, MooseDocs.INLINE)
-
-    #key = caption.get('key', None) if caption else None
-    #if key:
-    #    tokens.Shortcut(parent, caption=key, link=u'#{}'.format(key),
-    #                    string=u'{} {}'.format(caption['prefix'].title(), caption['number']))
-
     return caption
 
 def create_modal(parent, title=None, content=None, **kwargs):

@@ -173,3 +173,7 @@ Yo, dawg I heard you like formatting, so I created =underline
 formatted text that contains text with ~stikethrough that
 contains +bold formatting with *emphasis that has some^superscript
 text with a@subscript@^*+~=, I hope you like it.
+
+## Links id=links
+
+This is a link to [#links].

@@ -63,7 +63,8 @@ class ComponentSettings(command.CommandComponent):
         if self.settings['object'] is None:
             raise exceptions.MooseDocsException("The 'object' setting is required.")
 
-        master = floats.create_float(parent, self.extension, self.reader, page, self.settings, **self.attributes)
+        master = floats.create_float(parent, self.extension, self.reader, page, self.settings,
+                                     **self.attributes)
         try:
             mod = importlib.import_module(self.settings['module'])
         except ImportError:
