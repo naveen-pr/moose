@@ -8,7 +8,7 @@ def make_extension(**kwargs):
     return LayoutExtension(**kwargs)
 
 ColumnToken = tokens.newToken('ColumnToken', width=u'')
-RawToken = tokens.newToken('RowToken')
+RowToken = tokens.newToken('RowToken')
 
 class LayoutExtension(command.CommandExtension):
     """
