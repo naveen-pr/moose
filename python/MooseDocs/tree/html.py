@@ -38,7 +38,7 @@ class Tag(NodeBase):
             kwargs['id'] = kwargs.pop('id_', u'')
         super(Tag, self).__init__(name=name, parent=parent, **kwargs)
 
-        string = self.get('string', None)
+        string = self.attributes.pop('string', None)
         if string is not None:
             String(self, content=string)
 
@@ -64,18 +64,18 @@ class Tag(NodeBase):
         attr_list = []
         for key, value in self.iteritems():
             if value:# and (key != 'class'):
-                attr_list.append('{}="{}"'.format(key, str(value).strip()))
+                attr_list.append(u'{}="{}"'.format(key, unicode(value).strip()))
 
-        attr = ' '.join(attr_list)
+        attr = u' '.join(attr_list)
         if attr:
-            out += '<{} {}>'.format(self.name, attr)
+            out += u'<{} {}>'.format(self.name, attr)
         else:
-            out += '<{}>'.format(self.name)
+            out += u'<{}>'.format(self.name)
 
         for child in self.children:
             out += child.write()
         if self.get('close'): #pylint: disable=no-member
-            out += '</{}>'.format(self.name)
+            out += u'</{}>'.format(self.name)
         return out
 
     def text(self):

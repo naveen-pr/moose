@@ -9,16 +9,9 @@ from MooseDocs.tree.base import Property
 def make_extension(**kwargs):
     return AlertExtension(**kwargs)
 
-class AlertToken(tokens.Token):
-    PROPERTIES = [Property('brand', ptype=unicode, required=True)]
-
-class AlertTitle(tokens.Token):
-    PROPERTIES = [Property('brand', ptype=unicode, required=True),
-                  Property('prefix', default=True, ptype=bool)]
-
-class AlertContent(tokens.Token):
-    PROPERTIES = [Property('brand', ptype=unicode, required=True),
-                  Property('icon', ptype=bool, default=True)]
+AlertToken = tokens.newToken('AlertToken', brand=u'')
+AlertTitle = tokens.newToken('AlertTitle', brand=u'', prefix=True)
+AlertContent = tokens.newToken('AlertContent', brand=u'', icon=True)
 
 class AlertExtension(command.CommandExtension):
     """
@@ -74,12 +67,14 @@ class RenderAlertToken(components.RenderComponent):
 
 
     def createHTML(self, parent, token, page):
-        div = html.Tag(parent, 'div', class_='moose-alert moose-alert-{}'.format(token.brand))
+        div = html.Tag(parent, 'div', class_='moose-alert moose-alert-{}'.format(token['brand']))
         content = html.Tag(div, 'div', class_='moose-alert-content')
         return content
 
     def createMaterialize(self, parent, token, page):
-        return html.Tag(parent, 'div', class_='card moose-alert moose-alert-{}'.format(token.brand))
+        return html.Tag(parent,
+                        'div',
+                        class_='card moose-alert moose-alert-{}'.format(token['brand']))
 
     def createLatex(self, parent, token, page):
         pass
@@ -106,14 +101,14 @@ class RenderAlertTitle(components.RenderComponent):
         if token.prefix:# or token.title:
             title = html.Tag(parent, 'div', class_='card-title moose-alert-title')
 
-            prefix = None
-            if token.prefix:
-                brand = token.brand
+            prefix = token.get('prefix', None)
+            if prefix is None:
+                brand = token['brand']
                 if brand == u'construction':
                     brand = u'under construction'
                 prefix = html.Tag(title, 'span', string=brand, class_='moose-alert-title-brand')
 
             if token.children and prefix:
-                prefix(0).content += u':'
+                prefix(0).set('content', u':')
 
         return title

@@ -6,11 +6,8 @@ from MooseDocs.extensions import command
 def make_extension(**kwargs):
     return MaterialIconExtension(**kwargs)
 
-class IconBlockToken(tokens.Token):
-    pass
-
-class IconToken(tokens.Token):
-    PROPERTIES = [tokens.Property('icon', ptype=unicode, required=True)]
+IconBlockToken = tokens.newToken('IconBlockToken')
+IconToken = tokens.newToken('IconToken', icon=u'')
 
 class MaterialIconExtension(command.CommandExtension):
     "Adds ability to include material icons."""
@@ -23,8 +20,8 @@ class MaterialIconExtension(command.CommandExtension):
     def extend(self, reader, renderer):
         self.requires(command)
         self.addCommand(reader, IconCommand())
-        renderer.add(IconToken, RenderIconToken())
-        renderer.add(IconBlockToken, RenderIconBlockToken())
+        renderer.add('IconToken', RenderIconToken())
+        renderer.add('IconBlockToken', RenderIconBlockToken())
 
 class IconCommand(command.CommandComponent):
     COMMAND = 'icon'
@@ -38,8 +35,8 @@ class RenderIconToken(components.RenderComponent):
         pass
 
     def createMaterialize(self, parent, token, page): #pylint: disable=no-self-use,unused-argument
-        i = html.Tag(parent, 'i', class_='material-icons', **token.attributes)
-        html.String(i, content=token.icon, hide=True)
+        i = html.Tag(parent, 'i', class_='material-icons moose-inline-icon', **token.attributes)
+        html.String(i, content=token['icon'], hide=True)
 
     def createLatex(self, parent, token, page):
         pass

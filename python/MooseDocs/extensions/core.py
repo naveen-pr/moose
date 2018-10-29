@@ -397,13 +397,13 @@ class RenderShortcutLink(components.RenderComponent):
 
         #TODO: error if more than one found
         for node in anytree.PreOrderIter(token.root, maxlevel=None):
-            if isinstance(node, tokens.Shortcut) and node['key'] == key:
+            if node.name == 'Shortcut' and node['key'] == key:
                 with Translator.LOCK:
                     self.__cache[key] = node
                 return node
 
         msg = "The shortcut link key '{}' was not located in the list of shortcuts."
-        raise exceptions.MooseExeception(msg, key)
+        raise exceptions.MooseDocsException(msg, key)
 
 class RenderShortcut(components.RenderComponent):
     def createHTML(self, parent, token, page):

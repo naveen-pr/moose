@@ -37,20 +37,14 @@ Extensions:
     MooseDocs.extensions.include: default
     MooseDocs.extensions.media: default
     MooseDocs.extensions.listing: default
-    MooseDocs.extensions.table:
-        active: False
+    MooseDocs.extensions.table: default
     MooseDocs.extensions.autolink:
         active: False
-    MooseDocs.extensions.devel:
-        active: False
-    MooseDocs.extensions.package:
-        active: False
-    MooseDocs.extensions.alert:
-        active: False
-    MooseDocs.extensions.katex:
-        active: False
-    MooseDocs.extensions.bibtex:
-        active: False
+    MooseDocs.extensions.devel: default
+    MooseDocs.extensions.package: default
+    MooseDocs.extensions.alert: default
+    MooseDocs.extensions.katex: default
+    MooseDocs.extensions.bibtex: default
     MooseDocs.extensions.layout:
         active: False
     MooseDocs.extensions.config:

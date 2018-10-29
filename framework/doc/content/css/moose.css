@@ -47,6 +47,10 @@ html {
     margin-left:5px;
 }
 
+.moose-inline-icon{
+    vertical-align:bottom;
+}
+
 .tabs .tab a:hover, .tabs .tab a.active {
 	background-color: transparent;
   color: var(--inl-blue);

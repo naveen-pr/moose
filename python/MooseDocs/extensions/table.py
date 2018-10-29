@@ -12,32 +12,21 @@ from MooseDocs.tree.base import Property
 def make_extension(**kwargs):
     return TableExtension(**kwargs)
 
-class Table(tokens.Token):
-    pass
-
-class TableBody(tokens.Token):
-    pass
-
-class TableHead(tokens.Token):
-    pass
-
-class TableRow(tokens.Token):
-    pass
-
-class TableItem(tokens.Token):
-    PROPERTIES = [Property('align', ptype=str, default='center')]
-
-class TableHeaderItem(TableItem):
-    pass
+Table = tokens.newToken('Table')
+TableBody = tokens.newToken('TableBody')
+TableHead = tokens.newToken('TableHead')
+TableHeadItem = tokens.newToken('TableHeadItem')
+TableRow = tokens.newToken('TableRow')
+TableItem = tokens.newToken('TableItem', align='center')
 
 def builder(rows, headings=None):
     """Helper for creating tokens for a table."""
-    node = Table()
+    node = Table(None)
     if headings:
         thead = TableHead(node)
         row = TableRow(thead)
         for h in headings:
-            th = TableHeaderItem(row, align='left')
+            th = TableHeadItem(row, align='left')
             tokens.String(th, content=unicode(h))
 
     tbody = TableBody(node)
@@ -65,12 +54,12 @@ class TableExtension(command.CommandExtension):
 
         reader.addBlock(TableComponent(), "<Paragraph")
 
-        renderer.add(Table, RenderTable())
-        renderer.add(TableHead, RenderTag('thead'))
-        renderer.add(TableBody, RenderTag('tbody'))
-        renderer.add(TableRow, RenderTag('tr'))
-        renderer.add(TableHeaderItem, RenderItem('th'))
-        renderer.add(TableItem, RenderItem('td'))
+        renderer.add('Table', RenderTable())
+        renderer.add('TableHead', RenderTag('thead'))
+        renderer.add('TableBody', RenderTag('tbody'))
+        renderer.add('TableRow', RenderTag('tr'))
+        renderer.add('TableHeadItem', RenderItem('th'))
+        renderer.add('TableItem', RenderItem('td'))
 
 class TableCommandComponent(command.CommandComponent):
     COMMAND = 'table'
@@ -96,14 +85,6 @@ class TableComponent(components.TokenComponent):
     FORMAT_RE = re.compile(r'^(?P<format>\|[ \|:\-]+\|)$', flags=re.MULTILINE|re.UNICODE)
 
     def createToken(self, parent, info, page):
-
-        try:
-            return self._createTable(parent, info, page)
-        except Exception as e:
-            msg = 'Failed to build table, the syntax is likely not correct:\n'
-            raise exceptions.MooseDocsException(msg, e.message)
-
-    def _createTable(self, parent, info, page):
 
         content = info['table']
         table = Table(parent)
@@ -134,7 +115,7 @@ class TableComponent(components.TokenComponent):
         if head:
             row = TableRow(TableHead(table))
             for i, h in enumerate(head):
-                hitem = TableHeaderItem(row, align=form[i])
+                hitem = TableHeadItem(row, align=form[i])
                 self.reader.tokenize(hitem, h, page, MooseDocs.INLINE)
 
         for line in body.splitlines():
@@ -174,5 +155,5 @@ class RenderTag(components.RenderComponent):
 class RenderItem(RenderTag):
     def createHTML(self, parent, token, page):
         tag = RenderTag.createHTML(self, parent, token, page)
-        tag.addStyle('text-align:{}'.format(token.align))
+        tag.addStyle('text-align:{}'.format(token['align']))
         return tag

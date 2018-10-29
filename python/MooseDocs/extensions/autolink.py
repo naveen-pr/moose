@@ -17,12 +17,8 @@ def make_extension(**kwargs):
 
 PAGE_LINK_RE = re.compile(r'(?P<filename>.*?\.md)?(?P<bookmark>#.*)?', flags=re.UNICODE)
 
-class LocalLink(tokens.Token):
-    PROPERTIES = [tokens.Property('bookmark', ptype=unicode, required=True)]
-
-class AutoLink(tokens.Token):
-    PROPERTIES = [tokens.Property('page', ptype=unicode, required=True),
-                  tokens.Property('bookmark', ptype=unicode)]
+LocalLink = tokens.newToken('LocalLink', bookmark=u'')
+AutoLink = tokens.newToken('AutoLink', page=u'', bookmark=u'')
 
 class AutoLinkExtension(components.Extension):
     """
@@ -121,13 +117,14 @@ class RenderLocalLink(components.RenderComponent):
     """
     def createHTML(self, parent, token, page):
 
+        bookmark = token['bookmark']
         ast = self.getSyntaxTree(page)
-        heading = common.find_heading(page, ast, token.bookmark)
-        a = html.Tag(parent, 'a', href=u'#{}'.format(token.bookmark))
+        heading = common.find_heading(page, ast, bookmark)
+        a = html.Tag(parent, 'a', href=u'#{}'.format(bookmark))
         if heading:
             self.renderer.render(a, heading, page)
         else:
-            html.String(a, content=u'#{}'.format(token.bookmark))
+            html.String(a, content=u'#{}'.format(bookmark))
         return parent
 
 class RenderAutoLink(components.RenderComponent):
@@ -136,7 +133,7 @@ class RenderAutoLink(components.RenderComponent):
     """
 
     def createHTML(self, parent, token, page):
-        desired = common.find_page(page.root, token.page)
+        desired = common.find_page(page.root, token['page'])
         #if desired.ast is None:
         #    msg = "The located page, {}, does not contain an AST."
         #    raise exceptions.MooseDocsException(msg, desired.source)
@@ -152,7 +149,7 @@ class RenderAutoLink(components.RenderComponent):
 
         else:
             ast = self.getSyntaxTree(desired)
-            heading = common.find_heading(desired, ast, token.bookmark)
+            heading = common.find_heading(desired, ast, token['bookmark'])
             if heading is not None:
                 for child in heading:
                     child.parent = link

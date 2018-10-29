@@ -106,10 +106,11 @@ class FloatExtension(components.Extension):
 
     def postTokenize(self, ast, page):
         """Set float number for each counter."""
-        for node in anytree.PreOrderIter(ast, filter_=lambda n: n.name == 'CountToken'):
-            if node.prefix is not None:
-                FloatExtension.COUNTS[node.prefix] += 1
-                node.set('number', FloatExtension.COUNTS[node.prefix])
+        for node in anytree.PreOrderIter(ast, filter_=lambda n: n.name == 'Caption'):
+            prefix = node.get('prefix', None)
+            if prefix:
+                FloatExtension.COUNTS[prefix] += 1
+                node.set('number', FloatExtension.COUNTS[prefix])
 
 class RenderFloat(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use

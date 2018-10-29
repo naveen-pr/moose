@@ -76,15 +76,18 @@ class BibtexExtension(command.CommandExtension):
 
         reader.addInline(BibtexReferenceComponent(), location='>Format')
 
-        renderer.add(BibtexCite, RenderBibtexCite())
-        renderer.add(BibtexBibliography, RenderBibtexBibliography())
+        renderer.add('BibtexCite', RenderBibtexCite())
+        renderer.add('BibtexBiliography', RenderBibtexBibliography())
 
-class BibtexCite(tokens.Token):
-    PROPERTIES = [tokens.Property('keys', ptype=list, required=True),
-                  tokens.Property('cite', ptype=unicode, default=u'cite')]
+BibtexCite = tokens.newToken('BibtexCite', keys=[])
+BibtexBibliography = tokens.newToken('BibtexBiliography', bib_style=u'')
 
-class BibtexBibliography(tokens.Token):
-    PROPERTIES = [tokens.Property('style', required=True, ptype=unicode)]
+#class BibtexCite(tokens.Token):
+#    PROPERTIES = [tokens.Property('keys', ptype=list, required=True),
+#                  tokens.Property('cite', ptype=unicode, default=u'cite')]
+#
+#class BibtexBibliography(tokens.Token):
+#    PROPERTIES = [tokens.Property('style', required=True, ptype=unicode)]
 
 class BibtexReferenceComponent(components.TokenComponent):
     RE = re.compile(r'\['                          # open
@@ -114,22 +117,23 @@ class BibtexCommand(command.CommandComponent):
         if self.settings['title']:
             h = tokens.Heading(parent, level=self.settings['title-level'])
             self.reader.tokenize(h, self.settings['title'], page, MooseDocs.INLINE)
-        BibtexBibliography(parent, style=self.settings['style'])
+        BibtexBibliography(parent, bib_style=self.settings['style'])
         return parent
 
 class RenderBibtexCite(components.RenderComponent):
 
     def createHTML(self, parent, token, page):
 
-        if token.cite == 'nocite':
+        cite = token['cite']
+        if cite == 'nocite':
             return parent
 
-        citep = token.cite == 'citep'
+        citep = cite == 'citep'
         if citep:
             html.String(parent, content=u'(')
 
-        num_keys = len(token.keys)
-        for i, key in enumerate(token.keys):
+        num_keys = len(token['keys'])
+        for i, key in enumerate(token['keys']):
 
             if key not in self.extension.database.entries:
                 msg = 'Unknown BibTeX key: {}'
@@ -191,17 +195,16 @@ class RenderBibtexCite(components.RenderComponent):
 class RenderBibtexBibliography(components.RenderComponent):
     def createHTML(self, parent, token, page):
 
-
         try:
-            style = find_plugin('pybtex.style.formatting', token.style)
+            style = find_plugin('pybtex.style.formatting', token['bib_style'])
         except PluginNotFound:
             msg = 'Unknown bibliography style "{}".'
-            raise exceptions.RenderException(msg, token.style)
+            raise exceptions.RenderException(msg, token['bib_style'])
 
         citations = list()
         for tok in anytree.PreOrderIter(token.root):
-            if isinstance(tok, BibtexCite):
-                citations.extend(tok.keys)
+            if tok.name == 'BibtexCite':
+                citations.extend(tok['keys'])
 
         formatted_bibliography = style().format_bibliography(self.extension.database, citations)
         html_backend = find_plugin('pybtex.backends', 'html')
@@ -216,10 +219,7 @@ class RenderBibtexBibliography(components.RenderComponent):
         return ol
 
     def createMaterialize(self, parent, token, page):
-        return parent
-
         ol = self.createHTML(parent, token, page)
-
         for child in ol.children:
             key = child['id']
             db = BibliographyData()
@@ -237,3 +237,5 @@ class RenderBibtexBibliography(components.RenderComponent):
             content = html.Tag(modal, 'div', class_='modal-content')
             pre = html.Tag(content, 'pre', style="line-height:1.25;")
             html.Tag(pre, 'code', class_='language-latex', string=btex)
+
+        return ol

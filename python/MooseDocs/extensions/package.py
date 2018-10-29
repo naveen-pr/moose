@@ -70,7 +70,7 @@ class PackageCommand(command.CommandComponent):
 
         if arch not in packages:
             msg = "The supplied value for the 'arch' settings, {}, was not found."
-            raise exceptions.TokenizeException(msg, arch)
+            raise exceptions.MooseDocsException(msg, arch)
 
         href = os.path.join(self.extension.get('link'), packages[arch])
         tokens.Link(parent, url=unicode(href), string=unicode(packages[arch]))

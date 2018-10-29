@@ -12,8 +12,8 @@ def make_extension(**kwargs):
     """Create an instance of the Extension object."""
     return KatexExtension(**kwargs)
 
-LatexBlockEquation = tokens.newToken('LatexBlockEquation', tex=r'', label=u'')
-LatexInlineEquation = tokens.newToken('LatexInlineEquation', tex=r'')
+LatexBlockEquation = tokens.newToken('LatexBlockEquation', tex=r'', label=u'', bookmark=None)
+LatexInlineEquation = tokens.newToken('LatexInlineEquation', tex=r'', bookmark=None)
 
 class KatexExtension(components.Extension):
     """
@@ -33,22 +33,8 @@ class KatexExtension(components.Extension):
         self.requires(floats)
         reader.addInline(KatexBlockEquationComponent(), location='_begin')
         reader.addInline(KatexInlineEquationComponent(), location='_begin')
-
-        renderer.add(LatexBlockEquation, RenderLatexEquation())
-        renderer.add(LatexInlineEquation, RenderLatexEquation())
-
-    def postTokenize(self, ast, page):
-        """
-        Update shortcut numbering.
-        """
-        labels = dict()
-        for node in anytree.PreOrderIter(ast, filter_=lambda n: isinstance(n, LatexBlockEquation)):
-            labels[node.label] = node.number
-
-        for node in anytree.PreOrderIter(ast, filter_=lambda n: isinstance(n, tokens.Shortcut)):
-            key = labels.get(node.key, None)
-            if key:
-                tokens.String(node, content = u'{} {}'.format(self.get('prefix'), key))
+        renderer.add('LatexBlockEquation', RenderLatexEquation())
+        renderer.add('LatexInlineEquation', RenderLatexEquation())
 
 class KatexBlockEquationComponent(components.TokenComponent):
     """
@@ -71,8 +57,9 @@ class KatexBlockEquationComponent(components.TokenComponent):
 
         # Build the token
         is_numbered = not info['cmd'].endswith('*')
-        prefix = unicode(self.extension.get('prefix')) if is_numbered else None
-        token = LatexBlockEquation(parent, tex=tex, prefix=prefix, id_=eq_id)
+        token = LatexBlockEquation(parent, tex=tex, bookmark=eq_id)
+        if is_numbered: # Add caption for counting equations with floats extension
+            floats.Caption(token, prefix=unicode(self.extension.get('prefix')))
 
         # Add a label
         label = self.LABEL_RE.search(info['equation'])
@@ -82,9 +69,9 @@ class KatexBlockEquationComponent(components.TokenComponent):
             raise exceptions.MooseDocsException(msg)
 
         elif label:
-            token.label = label.group('id')
-            token.tex = token.tex.replace(label.group().encode('ascii'), '') #pylint: disable=attribute-defined-outside-init
-            tokens.Shortcut(parent.root, key=token.label, link=u'#{}'.format(eq_id))
+            token.set('label', label.group('id'))
+            token.set('tex', token['tex'].replace(label.group().encode('ascii'), ''))
+            tokens.Shortcut(parent.root, key=token['label'], link=u'#{}'.format(eq_id))
 
         return parent
 
@@ -102,15 +89,16 @@ class KatexInlineEquationComponent(components.TokenComponent):
         eq_id = 'moose-equation-{}'.format(uuid.uuid4())
 
         # Create token
-        LatexInlineEquation(parent, tex=tex, id_=eq_id)
+        LatexInlineEquation(parent, tex=tex, bookmark=eq_id)
         return parent
 
 class RenderLatexEquation(components.RenderComponent):
     """Render LatexBlockEquation and LatexInlineEquation tokens"""
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
 
-        if isinstance(token, LatexInlineEquation):
-            div = html.Tag(parent, 'span', class_='moose-katex-inline-equation', **token.attributes)
+        if token.name == 'LatexInlineEquation':
+            div = html.Tag(parent, 'span', class_='moose-katex-inline-equation',
+                           id_=token['bookmark'], **token.attributes)
             display = 'false'
 
         else:
@@ -119,16 +107,19 @@ class RenderLatexEquation(components.RenderComponent):
             display = 'true'
 
             # Create equation content and number (if it is valid)
-            html.Tag(div, 'span', class_='moose-katex-equation table-cell', **token.attributes)
-            if token.number is not None:
+            html.Tag(div, 'span', class_='moose-katex-equation table-cell',
+                     id_=token['bookmark'],
+                     **token.attributes)
+            if token.children:
                 num = html.Tag(div, 'span', class_='moose-katex-equation-number')
-                html.String(num, content=u'({})'.format(token.number))
+                html.String(num, content=u'({})'.format(token.children[0]['number']))
+                token.children[0].parent = None # Remove so caption doesn't appear
 
         # Build the KaTeX script
         script = html.Tag(div, 'script')
-        content = u'var element = document.getElementById("%s");' % token['id']
+        content = u'var element = document.getElementById("%s");' % token['bookmark']
         content += u'katex.render("%s", element, {displayMode:%s,throwOnError:false});' % \
-                   (token.tex, display)
+                   (token['tex'], display)
         html.String(script, content=content)
 
         return parent

@@ -59,7 +59,7 @@ class Token(NodeBase):
         self._info = None
 
         # Create string on demand
-        string = self.get('string', None)
+        string = self.attributes.pop('string', None)
         if string is not None:
             String(self, content=string) #pylint: disable=no-member
 
