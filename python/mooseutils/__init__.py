@@ -14,6 +14,7 @@ from mooseutils import run_profile
 from message import mooseDebug, mooseWarning, mooseMessage, mooseError
 from MooseException import MooseException
 from eval_path import eval_path
+from AutoPropertyMixin import AutoPropertyMixin, Property, addProperty
 
 try:
     from hit_load import hit_load, HitNode, hit_parse
