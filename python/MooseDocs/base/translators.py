@@ -267,8 +267,8 @@ class Translator(mixins.ConfigObject):
         t = self.__executeExtensionFunction('preExecute', self.root)
         LOG.info('  Finished preExecute methods [%s sec]', t)
 
-        #if not self.get('incremental_build'):
-        if False:
+        if not self.get('incremental_build'):
+        #if False:
             self.__page_syntax_trees = [None]*num_nodes # cache for getSyntaxTree
             LOG.info('  Building pages...')
             t = self.__build(source_nodes, num_threads)

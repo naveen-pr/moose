@@ -31,7 +31,6 @@ Translators:
 
 Extensions:
     MooseDocs.extensions.appsyntax:
-        active: False
         executable: ${MOOSE_DIR}/modules/combined
         hide:
             framework: !include framework/doc/hidden.yml
@@ -74,7 +73,6 @@ Extensions:
     MooseDocs.extensions.common:
         shortcuts: !include framework/doc/globals.yml
     MooseDocs.extensions.acronym:
-        active: False
         acronyms: !include framework/doc/acronyms.yml
     MooseDocs.extensions.sqa:
         active: False

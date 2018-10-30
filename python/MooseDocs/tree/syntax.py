@@ -21,13 +21,12 @@ class SyntaxNodeBase(NodeBase):
     """
     Node for MOOSE syntax that serves as the parent for actions/objects.
     """
-    PROPERTIES = [Property('hidden', ptype=bool, default=False),
-                  Property('removed', ptype=bool, default=False),
-                  Property('parameters', ptype=dict),
-                  Property('description', ptype=unicode),
-                  Property('alias', ptype=unicode)]
-
     def __init__(self, *args, **kwargs):
+        self._hidden = kwargs.pop('hidden', False)
+        self._removed = kwargs.pop('removed', False)
+        self._parameters = kwargs.pop('parameters', dict())
+        self._description = kwargs.pop('description', u'')
+        self._alias = kwargs.pop('alias', u'')
         NodeBase.__init__(self, *args, **kwargs)
         self._groups = set()
 
@@ -52,6 +51,51 @@ class SyntaxNodeBase(NodeBase):
             out.append(node.name)
             node = node.parent
         return '/'.join(reversed(out))
+
+    @property
+    def hidden(self):
+        """Return hidden property"""
+        return self._hidden
+
+    @hidden.setter
+    def hidden(self, value):
+        """Setter for hidden property"""
+        self._hidden = value
+
+    @property
+    def removed(self):
+        """Return the removed property."""
+        return self._removed
+
+    @removed.setter
+    def removed(self, value):
+        """Setter for removed property."""
+        self._removed = value
+
+    @property
+    def parameters(self):
+        """Return the parameters property."""
+        return self._parameters
+
+    @parameters.setter
+    def parameters(self, value):
+        """Setter for parameters property."""
+        self._parameters = value
+
+    @property
+    def description(self):
+        """Return the description property."""
+        return self._description
+
+    @description.setter
+    def description(self, value):
+        """Setter for description property."""
+        self._description = value
+
+    @property
+    def alias(self):
+        """Return the alias property."""
+        return self._alias
 
     def markdown(self):
         """Return the 'required' markdown filename."""
@@ -123,8 +167,8 @@ class SyntaxNode(SyntaxNodeBase):
     """
     COLOR = 'LIGHT_GREEN'
 
-    def __init__(self, parent, name, **kwargs):
-        SyntaxNodeBase.__init__(self, parent, name, **kwargs)
+    def __init__(self, *args, **kwargs):
+        SyntaxNodeBase.__init__(self, *args, **kwargs)
 
     def markdown(self):
         """
@@ -154,8 +198,8 @@ class ObjectNode(SyntaxNodeBase): #pylint: disable=abstract-method
     Base class for nodes associated with C++ objects (Action, MooseObjectAction, or MooseObject).
     """
 
-    def __init__(self, parent, name, item, **kwargs):
-        SyntaxNodeBase.__init__(self, parent, name, **kwargs)
+    def __init__(self, name, parent, item, **kwargs):
+        SyntaxNodeBase.__init__(self, name, parent, **kwargs)
 
         if item['description']:
             self.description = item['description']
@@ -211,9 +255,9 @@ class MooseObjectNode(ObjectNode):
     """
     COLOR = 'LIGHT_YELLOW'
 
-    def __init__(self, parent, key, item, **kwargs):
-        ObjectNode.__init__(self, parent, key, item, **kwargs)
-        self.__class_name = item['class'] if 'class' in item else key
+    def __init__(self, name, parent, item, **kwargs):
+        ObjectNode.__init__(self, name, parent, item, **kwargs)
+        self.__class_name = item['class'] if 'class' in item else name
 
     @property
     def class_name(self):
@@ -228,9 +272,8 @@ class ActionNode(ObjectNode):
     """
     COLOR = 'LIGHT_MAGENTA'
 
-    def __init__(self, parent, key, item, **kwargs):
-        ObjectNode.__init__(self, parent, key, item, **kwargs)
-
+    def __init__(self, name, parent, item, **kwargs):
+        ObjectNode.__init__(self, name, parent, item, **kwargs)
         self._tasks = set(item['tasks']) if 'tasks' in item else set()
 
     @property

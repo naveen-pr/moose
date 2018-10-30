@@ -20,17 +20,28 @@ class Extension(mixins.ConfigObject):
     def defaultConfig():
         """Basic Extension configuration options."""
         config = mixins.ConfigObject.defaultConfig()
-        config['active'] = (True, "Toggle for disabling the extension.")
+        config['active'] = (True, "Toggle for disabling the extension. This only changes "
+                                  "the initial active state, use setActive to control at runtime.")
         return config
 
     def __init__(self, **kwargs):
         mixins.ConfigObject.__init__(self, **kwargs)
         self.__requires = set()
 
+        # The 'active' setting must be able to be set outside of the configure options to allow
+        # for object constructors (i.e., appsyntax) to disable an extension internally. Because,
+        # if only the config is used it is reset after building the page to the default to
+        # support the config extension.
+        self.__active = self.get('active')
+
     @property
     def active(self):
         """Return the 'active' status of the Extension."""
-        return self.get('active', True)
+        return self.__active
+
+    def setActive(self, value):
+        """Set the active state for the extension."""
+        self.__active = value
 
     def extend(self, reader, renderer):
         """

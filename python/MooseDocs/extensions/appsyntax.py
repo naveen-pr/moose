@@ -95,16 +95,11 @@ class AppSyntaxExtension(command.CommandExtension):
         if self.active and self.get('executable') is None:
             msg = "No executable defined, the 'appsyntax' extension is being disabled."
             LOG.error(msg)
-            self.update(disabled=True)
+            self.setActive(False)
 
         if self.active:
             self.__initApplicationSyntax()
             self.__initClassDatabase()
-
-            if self._app_syntax is None:
-                msg = "Failed to build application syntax."
-                LOG.error(msg)
-                self.update(disabled=True)
 
     def __initApplicationSyntax(self):
         """Initialize the application syntax."""
@@ -136,6 +131,7 @@ class AppSyntaxExtension(command.CommandExtension):
             except Exception as e: #pylint: disable=broad-except
                 msg = "Failed to load application executable from '%s', " \
                       "application syntax is being disabled:\n%s"
+                self.setActive(False)
                 LOG.error(msg, self.get('executable'), e.message)
         LOG.info("MOOSE application syntax complete [%s sec.]", time.time() - start)
 

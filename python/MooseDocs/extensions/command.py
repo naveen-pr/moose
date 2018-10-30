@@ -93,12 +93,9 @@ class CommandBase(components.TokenComponent):
                 raise common.exceptions.MooseDocsException(msg.format(*cmd))
 
         if not obj.extension.active:
-            if isinstance(self, BlockInlineCommand):
-                tokens.DisabledToken(parent, tag='p', string=info[0])
-            elif isinstance(self, BlockBlockCommand):
-                tokens.DisabledToken(parent, tag='p', string=info[0])
-            elif isinstance(self, InlineCommand):
+            if isinstance(self, InlineCommand):
                 tokens.DisabledToken(parent, tag='span', string=info[0])
+            tokens.DisabledToken(parent, tag='p', string=info[0])
             return parent
 
         # Build the token
