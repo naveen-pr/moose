@@ -45,4 +45,8 @@
     type = PythonUnitTest
     input = test_check_file_size.py
   []
+  [AutoPropertyMixin]
+    type = PythonUnitTest
+    input = test_AutoPropertyMixin.py
+  []
 []

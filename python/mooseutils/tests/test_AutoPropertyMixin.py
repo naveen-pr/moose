@@ -127,7 +127,5 @@ class Test(unittest.TestCase):
 
         self.assertEqual(node1.prop, 12345)
 
-
-
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2)
