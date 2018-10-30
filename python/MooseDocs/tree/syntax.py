@@ -10,23 +10,22 @@
 import os
 import logging
 import copy
-
 import anytree
-
-from .base import NodeBase, Property
+import mooseutils
+from .base import NodeBase
 
 LOG = logging.getLogger(__name__)
 
-class SyntaxNodeBase(NodeBase):
+@mooseutils.addProperty('hidden', default=False, ptype=bool)
+@mooseutils.addProperty('removed', default=False, ptype=bool)
+@mooseutils.addProperty('parameters', ptype=dict)
+@mooseutils.addProperty('description', ptype=unicode)
+@mooseutils.addProperty('alias', ptype=unicode)
+class SyntaxNodeBase(NodeBase, mooseutils.AutoPropertyMixin):
     """
     Node for MOOSE syntax that serves as the parent for actions/objects.
     """
     def __init__(self, *args, **kwargs):
-        self._hidden = kwargs.pop('hidden', False)
-        self._removed = kwargs.pop('removed', False)
-        self._parameters = kwargs.pop('parameters', dict())
-        self._description = kwargs.pop('description', u'')
-        self._alias = kwargs.pop('alias', u'')
         NodeBase.__init__(self, *args, **kwargs)
         self._groups = set()
 
@@ -51,51 +50,6 @@ class SyntaxNodeBase(NodeBase):
             out.append(node.name)
             node = node.parent
         return '/'.join(reversed(out))
-
-    @property
-    def hidden(self):
-        """Return hidden property"""
-        return self._hidden
-
-    @hidden.setter
-    def hidden(self, value):
-        """Setter for hidden property"""
-        self._hidden = value
-
-    @property
-    def removed(self):
-        """Return the removed property."""
-        return self._removed
-
-    @removed.setter
-    def removed(self, value):
-        """Setter for removed property."""
-        self._removed = value
-
-    @property
-    def parameters(self):
-        """Return the parameters property."""
-        return self._parameters
-
-    @parameters.setter
-    def parameters(self, value):
-        """Setter for parameters property."""
-        self._parameters = value
-
-    @property
-    def description(self):
-        """Return the description property."""
-        return self._description
-
-    @description.setter
-    def description(self, value):
-        """Setter for description property."""
-        self._description = value
-
-    @property
-    def alias(self):
-        """Return the alias property."""
-        return self._alias
 
     def markdown(self):
         """Return the 'required' markdown filename."""

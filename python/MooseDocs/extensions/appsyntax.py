@@ -295,19 +295,19 @@ class SyntaxParametersCommand(SyntaxCommandHeadingBase):
         self.createHeading(parent, page)
         token = InputParametersToken(parent, parameters=parameters, **self.attributes)
         if self.settings['groups']:
-            token.groups = [group.strip() for group in self.settings['groups'].split(' ')]
+            token['groups'] = [group.strip() for group in self.settings['groups'].split(' ')]
 
         if self.settings['hide']:
-            token.hide = set([param.strip() for param in self.settings['hide'].split(' ')])
+            token['hide'] = set([param.strip() for param in self.settings['hide'].split(' ')])
 
         if self.settings['show']:
-            token.show = set([param.strip() for param in self.settings['show'].split(' ')])
+            token['show'] = set([param.strip() for param in self.settings['show'].split(' ')])
 
         if self.settings['visible'] is not None:
-            token.visible = set([group.strip().lower() for group in \
-                                 self.settings['visible'].split(' ')])
+            token['visible'] = set([group.strip().lower() for group in \
+                                    self.settings['visible'].split(' ')])
         else:
-            token.visible = self.extension.get('visible')
+            token['visible'] = self.extension.get('visible')
 
         return parent
 
@@ -469,7 +469,7 @@ class RenderSyntaxListItem(components.RenderComponent):
         pass
 
     def createMaterialize(self, parent, token, page):
-        class_ = 'collection-header' if token.header else 'collection-item'
+        class_ = 'collection-header' if token['header'] else 'collection-item'
         return html.Tag(parent, 'li', class_=class_)
 
 class RenderSyntaxList(components.RenderComponent):
@@ -543,8 +543,8 @@ class RenderInputParametersToken(components.RenderComponent):
             # Do nothing if the parameter is hidden or not shown
             name = param['name']
             if (name == 'type') or \
-               (token.hide and name in token.hide) or \
-               (token.show and name not in token.show):
+               (token['hide'] and name in token['hide']) or \
+               (token['show'] and name not in token['show']):
                 continue
 
             # Handle the 'ungroup' parameters
