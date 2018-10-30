@@ -5,5 +5,4 @@ import tokens
 import pages
 
 # TODO: move these to common
-import build_page_tree
 from app_syntax import app_syntax

@@ -26,11 +26,6 @@
     input = test_page.py
     requirement = "MooseDocs shall include tree object suitable for file structures."
   [../]
-  [./build_page_tree]
-    type = PythonUnitTest
-    input = test_build_page_tree.py
-    requirement = "MooseDocs shall include the ability to build a file tree from markdown files."
-  [../]
   [./syntax]
     type = PythonUnitTest
     input = test_syntax_tree.py

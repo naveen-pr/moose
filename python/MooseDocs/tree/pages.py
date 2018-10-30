@@ -14,9 +14,8 @@ import logging
 import codecs
 import types
 import urlparse
-
 import anytree
-
+import mooseutils
 import MooseDocs
 from MooseDocs import common
 from MooseDocs.common import exceptions, mixins
@@ -24,29 +23,17 @@ from MooseDocs.tree import base, tokens
 
 LOG = logging.getLogger(__name__)
 
-class Page(base.NodeBase):
+class Page(object):
     """
     Base class for input content that defines the methods called by the translator.
 
     This classes uses properties to minimize modifications after construction.
-
-    TODO: Based on how these objects are being used, I don't believe that the tree
-          is actually needed, since the tree is converted to a list on translation.
     """
-    COLOR = None
-
-    def __init__(self, parent=None, name=None, source=u'', **kwargs):
-        kwargs.setdefault('base', u'')
-        base.NodeBase.__init__(self, name, parent, **kwargs)
-
-        # Complete source path
-        self._source = source
-
-        # Complete path of the node
-        self._fullpath = None
-
-        # List of page names that depend on this page
-        self._dependencies = set()
+    def __init__(self, name, source=u'', base=u''):
+        self._base = base          # base directory for page location merging
+        self._source = source      # supplied source file/directory
+        self._name = name          # local path of the node
+        self._dependencies = set() # page names that depend on this page
 
     def buildIndex(self, home):
         """Return the index for this page."""
@@ -58,12 +45,6 @@ class Page(base.NodeBase):
         return self._source
 
     @property
-    def fullpath(self):
-        if self._fullpath is None:
-            self._fullpath = os.path.join(*[n.name for n in self.path])
-        return self._fullpath
-
-    @property
     def dependencies(self):
         """A set of Page object that depend on this page."""
         return self._dependencies
@@ -71,12 +52,12 @@ class Page(base.NodeBase):
     @property
     def local(self):
         """Returns the local directory/filename."""
-        return self.fullpath
+        return self._name
 
     @property
     def destination(self):
         """Returns the translator destination location."""
-        return os.path.join(self.get('base'), self.local)
+        return os.path.join(self._base, self.local)
 
     def addDependency(self, other):
         """Add a Page object as a dependency to this page."""
@@ -105,17 +86,18 @@ class Page(base.NodeBase):
         """
         return os.path.relpath(self.destination, os.path.dirname(other.destination))
 
-    def console(self):
+    def __str__(self):
         """Define the anytree screen output."""
-        return '{} ({}): fullpath={}, {}'.format(self.name, self.__class__.__name__, self.fullpath, self.source)
+        return '{}: {}, {}'.format(mooseutils.colorText(self.__class__.__name__, self.COLOR),
+                                   self.local, self.source)
 
-class DirectoryNode(Page):
+class Directory(Page):
     """
     Directory nodes.
     """
     COLOR = 'CYAN'
 
-class FileNode(Page):
+class File(Page):
     """
     File nodes.
 
@@ -123,20 +105,20 @@ class FileNode(Page):
     """
     COLOR = 'MAGENTA'
 
-class SourceNode(FileNode):
+class Source(File):
     """
     Node for content that is being converted (e.g., Markdown files).
     """
     COLOR = 'YELLOW'
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault('output_extension', None)
-        super(FileNode, self).__init__(*args, **kwargs)
+        self._output_extension = kwargs.pop('output_extension', None)
+        super(File, self).__init__(*args, **kwargs)
 
     @property
     def destination(self):
         """The content destination (override)."""
         _, ext = os.path.splitext(self.source)
-        return super(SourceNode, self).destination.replace(ext, self.get('output_extension'))
+        return super(Source, self).destination.replace(ext, self._output_extension)
 
     def buildIndex(self, home):
         """
@@ -160,7 +142,7 @@ class SourceNode(FileNode):
             if name.endswith('.md'):
                 name = name[:-3]
             text = section['data-section-text']
-            location = urlparse.urlsplit(self.destination.replace(self.base, home)) \
+            location = urlparse.urlsplit(self.destination.replace(self._base, home)) \
                        ._replace(scheme=None, netloc=None, fragment=str(section['id'])).geturl()
             index.append(dict(name=name, text=text, location=location))
 

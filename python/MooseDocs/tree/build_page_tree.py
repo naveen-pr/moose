@@ -111,15 +111,15 @@ def doc_import(root_dir, content=None):
 
     return sorted(output)
 
-def create_file_node(parent, name, filename, in_ext, out_ext):
+def create_file_node(name, filename, in_ext, out_ext):
     """
     Create the correct node object for the given extension.
     """
     _, ext = os.path.splitext(filename)
     if ext in in_ext:
-        return pages.SourceNode(parent, name=name, source=filename, output_extension=out_ext)
+        return pages.Source(name, source=filename, output_extension=out_ext)
     else:
-        return pages.FileNode(parent, name=name, source=filename)
+        return pages.File(name, source=filename)
 
 def doc_tree(items, in_ext, out_ext):
     """
@@ -140,9 +140,6 @@ def doc_tree(items, in_ext, out_ext):
     # Define a dict for storing nodes by path
     nodes = dict()
 
-    # Create the root node
-    nodes[()] = pages.DirectoryNode(None, name=u'', source=u'')
-
     # Create the file tree
     for value in items:
 
@@ -159,19 +156,19 @@ def doc_tree(items, in_ext, out_ext):
 
         files = doc_import(root, content=value.get('content', None))
         for filename in files:
-            key = tuple(filename.replace(root, '').strip('/').split('/'))
+            key = filename.replace(root, '').strip('/')
+            parts = key.split('/')
 
             # Create directory nodes if they don't exist
-            for i in range(1, len(key)):
-                dir_key = key[:i]
+            for i in range(1, len(parts)):
+                dir_key = os.path.join(*parts[:i])
                 if dir_key not in nodes:
-                    nodes[dir_key] = pages.DirectoryNode(nodes[key[:i-1]],
-                                                        name=key[i-1],
-                                                        source=os.path.join(root, *dir_key))
+                    nodes[dir_key] = pages.Directory(dir_key,
+                                                         source=os.path.join(root, dir_key))
 
             # Create the file node, if it doesn't already exist. This enforces that the first
             # item in the supplied content lists is the page that is rendered.
             if key not in nodes:
-                nodes[key] = create_file_node(nodes[key[:-1]], key[-1], filename, in_ext, out_ext)
+                nodes[key] = create_file_node(key, filename, in_ext, out_ext)
 
-    return nodes[()]
+    return nodes

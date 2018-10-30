@@ -51,4 +51,9 @@
     input = test_get_requirements.py
     requirement = "MooseDocs shall include a tool for reading software quality assurance requirement information from test specifications."
   []
+  [get_pages]
+    type = PythonUnitTest
+    input = test_get_pages.py
+    requirement = "MooseDocs shall include the ability to build a file tree from markdown files."
+  []
 []

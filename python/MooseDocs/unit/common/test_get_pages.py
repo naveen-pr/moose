@@ -147,21 +147,21 @@ class TestDocTree(unittest.TestCase):
                  dict(root_dir=os.path.join(ROOT_DIR, 'framework/doc/content'),
                       content=['documentation/systems/Adaptivity/framework/**'])]
 
-        root = doc_tree(items)
+        nodes = doc_tree(items, '.md', '.html')
 
-        self.assertIsInstance(root(0), pages.DirectoryNode)
-        self.assertEqual(root(0).name, 'getting_started')
-        self.assertEqual(root(0).source,
+        for key, value in nodes.iteritems():
+            print value
+
+        p = nodes['getting_started']
+        self.assertIsInstance(p, pages.Directory)
+        self.assertEqual(p.local, 'getting_started')
+        self.assertEqual(p.source,
                          os.path.join(ROOT_DIR, 'framework/doc/content/getting_started'))
 
-        self.assertIsInstance(root(0)(0), pages.DirectoryNode)
-        self.assertEqual(root(0)(0).name, 'installation')
-        self.assertEqual(root(0)(0).source,
-                         os.path.join(ROOT_DIR, 'framework/doc/content/getting_started/installation'))
-
-        self.assertIsInstance(root(0)(0)(0), pages.MarkdownNode)
-        self.assertEqual(root(0)(0)(0).name, 'bash_profile.md')
-        self.assertEqual(root(0)(0)(0).source,
+        p = nodes['getting_started/installation/bash_profile.md']
+        self.assertIsInstance(p, pages.Source)
+        self.assertEqual(p.local, 'getting_started/installation/bash_profile.md')
+        self.assertEqual(p.source,
                          os.path.join(ROOT_DIR,
                                       'framework/doc/content/getting_started/installation/bash_profile.md'))
 
