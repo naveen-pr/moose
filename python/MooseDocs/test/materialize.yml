@@ -23,8 +23,10 @@ Extensions:
     MooseDocs.extensions.core: default
     MooseDocs.extensions.floats: default
     MooseDocs.extensions.command: default
-    MooseDocs.extensions.include: default
-    MooseDocs.extensions.media: default
+    MooseDocs.extensions.include:
+        active: False
+    MooseDocs.extensions.media:
+        active: False
     MooseDocs.extensions.listing: default
     MooseDocs.extensions.autolink: default
     MooseDocs.extensions.table: default
@@ -36,7 +38,8 @@ Extensions:
     MooseDocs.extensions.materialicon: default
     MooseDocs.extensions.layout: default
     MooseDocs.extensions.config: default
-    MooseDocs.extensions.content: default
+    MooseDocs.extensions.content:
+        active: False
     MooseDocs.extensions.plotly: default
     MooseDocs.extensions.acronym:
         acronyms:

@@ -14,7 +14,6 @@ import mooseutils
 import anytree
 import copy
 import MooseDocs
-from MooseDocs import common
 from MooseDocs.common import exceptions
 from MooseDocs.tree.base import NodeBase
 

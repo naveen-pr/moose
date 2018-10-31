@@ -11,15 +11,12 @@
 import os
 import re
 import logging
-
 import mooseutils
-
 import MooseDocs
-from MooseDocs.tree import pages
 
 LOG = logging.getLogger(__name__)
 
-def build_regex(pattern):
+def _build_regex(pattern):
     """
     Build regex from paths with * and **.
 
@@ -47,20 +44,20 @@ def build_regex(pattern):
     # The overall regex for searching filenames must be limited to one line
     return r'^{}$'.format(out)
 
-def find_files(filenames, pattern):
+def _find_files(filenames, pattern):
     """
     Locate files matching the given pattern.
     """
     out = set()
     if '*' in pattern:
-        regex = build_regex(pattern)
+        regex = _build_regex(pattern)
         for match in re.finditer(regex, '\n'.join(filenames), flags=re.MULTILINE):
             out.add(match.group(0))
     else:
         out.add(pattern)
     return out
 
-def doc_import(root_dir, content=None):
+def _doc_import(root_dir, content=None):
     """
     Cretes a list of files to "include" from patterns.
 
@@ -104,24 +101,24 @@ def doc_import(root_dir, content=None):
     # Create the complete set of files
     output = set()
     for pattern in include:
-        output.update(find_files(filenames, os.path.join(root_dir, pattern)))
+        output.update(_find_files(filenames, os.path.join(root_dir, pattern)))
 
     for pattern in exclude:
-        output -= find_files(output, os.path.join(root_dir, pattern))
+        output -= _find_files(output, os.path.join(root_dir, pattern))
 
     return sorted(output)
 
-def create_file_node(name, filename, in_ext, out_ext):
+def _create_file_node(name, filename, in_ext, out_ext):
     """
     Create the correct node object for the given extension.
     """
     _, ext = os.path.splitext(filename)
     if ext in in_ext:
-        return pages.Source(name, source=filename, output_extension=out_ext)
+        return MooseDocs.tree.pages.Source(name, source=filename, output_extension=out_ext)
     else:
-        return pages.File(name, source=filename)
+        return MooseDocs.tree.pages.File(name, source=filename)
 
-def doc_tree(items, in_ext, out_ext):
+def get_content(items, in_ext, out_ext):
     """
     Create a tree of files for processing.
 
@@ -154,7 +151,7 @@ def doc_tree(items, in_ext, out_ext):
         # Update the project files
         MooseDocs.PROJECT_FILES.update(mooseutils.git_ls_files(mooseutils.git_root_dir(root)))
 
-        files = doc_import(root, content=value.get('content', None))
+        files = _doc_import(root, content=value.get('content', None))
         for filename in files:
             key = filename.replace(root, '').strip('/')
             parts = key.split('/')
@@ -163,12 +160,13 @@ def doc_tree(items, in_ext, out_ext):
             for i in range(1, len(parts)):
                 dir_key = os.path.join(*parts[:i])
                 if dir_key not in nodes:
-                    nodes[dir_key] = pages.Directory(dir_key,
-                                                         source=os.path.join(root, dir_key))
+                    print root, dir_key, os.path.join(root, dir_key)
+                    nodes[dir_key] = MooseDocs.tree.pages.Directory(dir_key,
+                                                                    source=os.path.join(root, dir_key))
 
             # Create the file node, if it doesn't already exist. This enforces that the first
             # item in the supplied content lists is the page that is rendered.
             if key not in nodes:
-                nodes[key] = create_file_node(key, filename, in_ext, out_ext)
+                nodes[key] = _create_file_node(key, filename, in_ext, out_ext)
 
     return nodes

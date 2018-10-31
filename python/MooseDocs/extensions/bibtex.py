@@ -38,12 +38,13 @@ class BibtexExtension(command.CommandExtension):
         self.__database = None
         self.__citations = set()
 
-    def preExecute(self, root):
+    def preExecute(self, content):
 
         self.__database = BibliographyData()
 
         bib_files = []
-        for node in anytree.PreOrderIter(root):
+        for node in content.values():
+            print node
             if node.source.endswith('.bib'):
                 bib_files.append(node.source)
 

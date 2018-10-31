@@ -109,9 +109,11 @@ def addProperty(*args, **kwargs):
 
         properties = set()
         for sub_cls in inspect.getmro(cls):
-            properties.update(cls.__DESCRIPTORS__[sub_cls])
+            print cls, sub_cls
+            properties.update(AutoPropertyMixin.__DESCRIPTORS__[sub_cls])
         properties.add(prop)
         cls.__DESCRIPTORS__[cls].update(properties)
+        print cls, prop.name, prop
 
         setattr(cls, prop.name, prop)
         return cls
@@ -175,6 +177,8 @@ class AutoPropertyMixin(object):
         self.__attributes = dict() # storage for attributes (i.e., unknown key, values)
 
         # Create properties and set defaults
+        print self.__DESCRIPTORS__.keys(), self.__class__
+
         descriptors = self.__DESCRIPTORS__[self.__class__]
         for prop in descriptors:
             setattr(self.__class__, prop.name, prop)
@@ -193,6 +197,8 @@ class AutoPropertyMixin(object):
         # Check properties
         for prop in descriptors:
             prop.onPropertyCheck(self)
+
+        print self.__properties
 
     @property
     def attributes(self):

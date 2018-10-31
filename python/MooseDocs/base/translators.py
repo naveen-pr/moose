@@ -90,7 +90,7 @@ class Translator(mixins.ConfigObject):
                 common.check_type('extensions', ext, Extension)
 
         self.__initialized = False
-        self.__root = content
+        self.__content = content
         self.__extensions = extensions
         self.__reader = reader
         self.__renderer = renderer
@@ -116,11 +116,6 @@ class Translator(mixins.ConfigObject):
        """Return the Renderer object."""
        return self.__renderer
 
-    @property
-    def root(self):
-       """Return the root page of the documents being translated."""
-       return self.__root
-
     def update(self, **kwargs):
         """Update configuration and handle destination."""
         dest = kwargs.get('destination', None)
@@ -141,6 +136,35 @@ class Translator(mixins.ConfigObject):
             self.reader.tokenize(ast, content, page)
             self.__page_syntax_trees[page._Page__unique_id] = ast
         return ast
+
+    def findPages(self, name):
+        """
+        Locate all Page objects that have a local name ending with the supplied name.
+
+        Inputs:
+            name[str]: The partial name to search against.
+        """
+        if MooseDocs.LOG_LEVEL == logging.DEBUG:
+            check_type('name', name, (str, unicode))
+        return [page for page in self.__content if page.local.endswith(name)]
+
+    def findPage(self, name):
+        """
+        Locate a single Page object that has a local name ending with the supplied name.
+        Inputs:
+            name[str]: The partial name to search against.
+        """
+        nodes = self.findPages(name)
+        if len(nodes) == 0:
+            msg = "Unable to locate a page that ends with the name '{}'.".format(name)
+            raise MooseDocsException(msg)
+
+        elif len(nodes) > 1:
+            msg = "Multiple pages with a name that end swith '{}' were found:".format(name)
+            for node in nodes:
+                msg += '\n  {} (source: {})'.format(node.local, node.source)
+            raise MooseDocsException(msg)
+        return nodes[0]
 
     def init(self):
         """
@@ -176,8 +200,8 @@ class Translator(mixins.ConfigObject):
         for ext in self.__extensions:
             self.__checkRequires(ext)
 
-        for node in anytree.PreOrderIter(self.__root):
-            node.set('base', destination)
+        for node in self.__content.values():
+            node.base = destination
 
         self.__initialized = True
 
@@ -249,10 +273,10 @@ class Translator(mixins.ConfigObject):
         self.__assertInitialize()
 
         # Extract the SourceNodes for translation
-        nodes = nodes or [n for n in anytree.PreOrderIter(self.__root)]
-        source_nodes = [n for n in nodes if isinstance(n, pages.SourceNode)]
-        other_nodes = [n for n in nodes if not isinstance(n, pages.SourceNode)]
+        source_nodes = [n for n in self.__content if isinstance(n, pages.Source)]
+        other_nodes = [n for n in self.__content if not isinstance(n, pages.Source)]
 
+        # Shuffle to improve load balance
         random.shuffle(source_nodes)
 
         # Assign an ID to each node for data transfer
@@ -264,7 +288,7 @@ class Translator(mixins.ConfigObject):
         LOG.info('Translating using %s threads...', num_threads)
 
         LOG.info('  Executing preExecute methods...')
-        t = self.__executeExtensionFunction('preExecute', self.root)
+        t = self.__executeExtensionFunction('preExecute', self.__content)
         LOG.info('  Finished preExecute methods [%s sec]', t)
 
         if not self.get('incremental_build'):
@@ -298,7 +322,7 @@ class Translator(mixins.ConfigObject):
         LOG.info('  Finalizing Finished [%s sec.]', t)
 
         LOG.info('  Executing postExecute methods...')
-        t =self.__executeExtensionFunction('postExecute', self.root)
+        t =self.__executeExtensionFunction('postExecute', self.__content)
         LOG.info('  Finished postExecute methods [%s sec]', t)
 
         LOG.info('Translating complete [%s sec.]', time.time() - start)

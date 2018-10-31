@@ -25,6 +25,8 @@ def command_line_options(subparser, parent):
 
     parser.add_argument('--config', default='config.yml',
                         help="The configuration file.")
+    parser.add_argument('--disable', default=[], type=list, nargs='*',
+                        help="A list of extensions to disable.")
     parser.add_argument('--destination',
                         default=None,
                         help="Destination for writing build content.")
@@ -150,6 +152,14 @@ def main(options):
     if options.destination:
         translator.update(destination=mooseutils.eval_path(options.destination))
     translator.init()
+
+    for obj in translator._Translator__content.values():
+        print obj
+
+    # Disable extensions based on command line arguments
+    for ext in translator.extensions:
+        if ext._name in options.disable:
+            ext.setActive(False)
 
     # Replace "home" with local server
     if options.serve:

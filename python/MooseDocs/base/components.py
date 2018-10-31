@@ -279,13 +279,24 @@ class RenderComponent(Component, mixins.RendererObject):
         """
         To avoid pickling data as much as possible during Translator::execute the AST data
         after tokenization is stored on the translator object. The RenderComponent
-        objects need the abiltiy to get the AST for other pages. The AST is only
+        objects need the ability to get the AST for other pages. The AST is only
         available across all pages after the translator completes tokenization. This requires
         that the retrieval method for the AST be limited to rendering (i.e., this class). Hence,
-        the translator is needed here, for the getSyntaxTree method to work.
+        the translator is needed here, for the getSyntaxTree, findPages, and findPage methods to
+        work.
         """
-        #check_type('translator', translator, Translator)
         self.__translator = translator
 
     def getSyntaxTree(self, page):
+        """
+        Return the Syntax tree for the supplied page.
+        """
         return self.__translator.getSyntaxTree(page)
+
+    def findPages(self, name):
+        """Locate pages matching the supplied name (see Translator::findPages)."""
+        return self.__translator.findPages(name)
+
+    def findPage(self, name):
+        """Locate  a page matching the supplied name (see Translator::findPage)."""
+        return self.__translator.findPages(name)

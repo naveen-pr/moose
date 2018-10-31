@@ -17,32 +17,33 @@ import urlparse
 import anytree
 import mooseutils
 import MooseDocs
-from MooseDocs import common
-from MooseDocs.common import exceptions, mixins
+from MooseDocs.common import exceptions, mixins, check_type
 from MooseDocs.tree import base, tokens
 
 LOG = logging.getLogger(__name__)
 
-class Page(object):
+@mooseutils.addProperty('base', ptype=str)   # set by Translator::init
+@mooseutils.addProperty('source', ptype=str, required=True) # supplied source file/directory
+class Page(mooseutils.AutoPropertyMixin):
     """
     Base class for input content that defines the methods called by the translator.
 
     This classes uses properties to minimize modifications after construction.
     """
-    def __init__(self, name, source=u'', base=u''):
-        self._base = base          # base directory for page location merging
-        self._source = source      # supplied source file/directory
+    def __init__(self, name, **kwargs):
+        #mooseutils.AutoPropertyMixin.__init__(self, **kwargs)
+        super(Page, self).__init__(**kwargs)
+
+        if self.source is None:
+            print kwargs, type(self)
+            raise Exception('why')
+
         self._name = name          # local path of the node
         self._dependencies = set() # page names that depend on this page
 
     def buildIndex(self, home):
         """Return the index for this page."""
         return None
-
-    @property
-    def source(self):
-        """Return the source location."""
-        return self._source
 
     @property
     def dependencies(self):
@@ -62,7 +63,7 @@ class Page(object):
     def addDependency(self, other):
         """Add a Page object as a dependency to this page."""
         if MooseDocs.LOG_LEVEL == logging.DEBUG:
-            common.check_type('other', other, str)
+            check_type('other', other, str)
         self._dependencies.add(other)
 
     def modified(self):
@@ -96,6 +97,8 @@ class Directory(Page):
     Directory nodes.
     """
     COLOR = 'CYAN'
+    #def __init__(self, *args, **kwargs):
+    #    super(Directory, self).__init__(*args, **kwargs)
 
 class File(Page):
     """

@@ -73,6 +73,7 @@ def load_extensions(ext_list, ext_configs=None):
             raise exceptions.MooseDocsException(msg, name)
         else:
             obj = mod.make_extension(**ext_configs.get(name, dict()))
+            obj._name = name.split('.')[-1] # hack to allow build to disable via command line
             extensions.append(obj)
 
     return extensions
@@ -161,4 +162,4 @@ def _yaml_load_content(config, in_ext, out_ext):
             content = value.get('content', None)
             items.append(dict(root_dir=value['root_dir'], content=content))
 
-    return MooseDocs.tree.build_page_tree.doc_tree(items, in_ext, out_ext)
+    return MooseDocs.common.get_content(items, in_ext, out_ext)

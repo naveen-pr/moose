@@ -4,8 +4,7 @@ Contains base classes intended to be used internal to this module.
 import uuid
 import copy
 import MooseDocs
-from MooseDocs import common
-from MooseDocs.common import exceptions
+from MooseDocs.common import exceptions, check_type
 
 #: A value for allowing ConfigObject.get method to work with a default of None
 UNSET = uuid.uuid4()
@@ -94,7 +93,7 @@ class ReaderObject(object):
                   "be called twice."
             raise MooseDocs.common.exceptions.MooseDocsException(msg, type(self))
 
-        common.check_type('reader', reader, MooseDocs.base.readers.Reader)
+        check_type('reader', reader, MooseDocs.base.readers.Reader)
         self.__reader = reader
 
     def initialized(self):
@@ -125,7 +124,7 @@ class RendererObject(object):
                   "be called twice."
             raise MooseDocs.common.exceptions.MooseDocsException(msg, type(self))
 
-        common.check_type('renderer', renderer, MooseDocs.base.renderers.Renderer)
+        check_type('renderer', renderer, MooseDocs.base.renderers.Renderer)
         self.__renderer = renderer
 
     def initialized(self):
@@ -160,5 +159,5 @@ class ComponentObject(object):
         """
         Add a Component object.
         """
-        common.check_type("component", comp, MooseDocs.base.components.Component)
+        check_type("component", comp, MooseDocs.base.components.Component)
         self.__components.append(comp)
