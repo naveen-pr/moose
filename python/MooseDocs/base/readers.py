@@ -44,7 +44,7 @@ class Reader(mixins.ConfigObject, mixins.ComponentObject):
 
         This is called by the Translator object.
         """
-        if isinstance(page, pages.SourceNode) and page.source and os.path.exists(page.source):
+        if isinstance(page, pages.Source) and page.source and os.path.exists(page.source):
             LOG.debug('READ %s', page.source)
             return common.read(page.source).lstrip('\n')
 

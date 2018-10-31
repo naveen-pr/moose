@@ -50,7 +50,6 @@ class PageShortcutLinkComponent(core.ShortcutLink):
     """
 
     def createToken(self, parent, info, page):
-
         match = PAGE_LINK_RE.search(info['key'])
         bookmark = match.group('bookmark')[1:] if match.group('bookmark') else None
         filename = match.group('filename')
@@ -92,7 +91,7 @@ class PageLinkComponent(core.Link):
         filename = match.group('filename')
 
         if (filename is not None):
-            desired = common.find_page(page.root, filename)
+            desired = self.findPage(filename)
 
             url=unicode(desired.relativeDestination(page))
             if bookmark is not None:
@@ -134,7 +133,7 @@ class RenderAutoLink(components.RenderComponent):
 
     def createHTML(self, parent, token, page):
 
-        desired = common.find_page(page.root, token['page'])
+        desired = self.findPage(token['page'])
         bookmark = token['bookmark']
 
         url = unicode(desired.relativeDestination(page))

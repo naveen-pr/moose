@@ -25,7 +25,7 @@ def command_line_options(subparser, parent):
 
     parser.add_argument('--config', default='config.yml',
                         help="The configuration file.")
-    parser.add_argument('--disable', default=[], type=list, nargs='*',
+    parser.add_argument('--disable', nargs='*',
                         help="A list of extensions to disable.")
     parser.add_argument('--destination',
                         default=None,
@@ -72,10 +72,13 @@ class MooseDocsWatcher(livereload.watcher.Watcher):
         self._options = options
         self._translator = translator
 
-        for node in anytree.PreOrderIter(self._translator.root):
+        for node in self._translator.content:
             self.watch(node.source, self.build, delay=2)
 
     def build(self):
+        pass
+
+        """
         func = lambda n: n.source == self.filepath
         nodes = [anytree.search.find(self._translator.root, filter_=func)]
         if nodes[0] and nodes[0].dependencies:
@@ -83,6 +86,7 @@ class MooseDocsWatcher(livereload.watcher.Watcher):
                 if node.fullpath in nodes[0].dependencies:
                     nodes.append(node)
             self._translator.execute(num_threads=1, nodes=nodes)
+        """
 
     def execute(self):
         """
@@ -152,9 +156,6 @@ def main(options):
     if options.destination:
         translator.update(destination=mooseutils.eval_path(options.destination))
     translator.init()
-
-    for obj in translator._Translator__content.values():
-        print obj
 
     # Disable extensions based on command line arguments
     for ext in translator.extensions:

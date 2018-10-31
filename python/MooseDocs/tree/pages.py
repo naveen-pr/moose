@@ -30,20 +30,22 @@ class Page(mooseutils.AutoPropertyMixin):
 
     This classes uses properties to minimize modifications after construction.
     """
-    def __init__(self, name, **kwargs):
-        #mooseutils.AutoPropertyMixin.__init__(self, **kwargs)
+    def __init__(self, fullname, **kwargs):
         super(Page, self).__init__(**kwargs)
 
-        if self.source is None:
-            print kwargs, type(self)
-            raise Exception('why')
-
-        self._name = name          # local path of the node
-        self._dependencies = set() # page names that depend on this page
+        self._fullname = fullname            # local path of the node
+        self._name = fullname.split('/')[-1] # file/folder name
+        self._dependencies = set()           # page names that depend on this page
+        self.__unique_id = None              # internal id that should not be used
 
     def buildIndex(self, home):
         """Return the index for this page."""
         return None
+
+    @property
+    def name(self):
+        """Return the name of the page (i.e., the directory or filename)."""
+        return self._name
 
     @property
     def dependencies(self):
@@ -53,12 +55,12 @@ class Page(mooseutils.AutoPropertyMixin):
     @property
     def local(self):
         """Returns the local directory/filename."""
-        return self._name
+        return self._fullname
 
     @property
     def destination(self):
         """Returns the translator destination location."""
-        return os.path.join(self._base, self.local)
+        return os.path.join(self.base, self.local)
 
     def addDependency(self, other):
         """Add a Page object as a dependency to this page."""
@@ -97,8 +99,6 @@ class Directory(Page):
     Directory nodes.
     """
     COLOR = 'CYAN'
-    #def __init__(self, *args, **kwargs):
-    #    super(Directory, self).__init__(*args, **kwargs)
 
 class File(Page):
     """

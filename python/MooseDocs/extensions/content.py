@@ -12,7 +12,7 @@ from MooseDocs.extensions import command
 def make_extension(**kwargs):
     return ContentExtension(**kwargs)
 
-ContentToken = tokens.newToken('ContentToken', node=u'')
+ContentToken = tokens.newToken('ContentToken', location=u'')
 AtoZToken = tokens.newToken('AtoZToken', level=None, buttons=bool)
 
 class ContentExtension(command.CommandExtension):
@@ -42,17 +42,7 @@ class ContentCommand(command.CommandComponent):
         return settings
 
     def createToken(self, parent, info, page):
-
-        location = self.settings['location']
-        if location is None:
-            node = self.translator.root
-        else:
-            func = lambda n: n.name == location and isinstance(n, pages.DirectoryNode)
-            node = anytree.search.find(page.root, filter_=func)
-            if not node:
-                raise exceptions.MoosdDocsException("Unable to locate the directory '{}'.", location)
-
-        ContentToken(parent, node=node.fullpath)
+        ContentToken(parent, location=self.settings['location'])
         return parent
 
 class AtoZCommand(command.CommandComponent):
@@ -67,64 +57,41 @@ class AtoZCommand(command.CommandComponent):
         return settings
 
     def createToken(self, parent, info, page):
-        #return parent
         return AtoZToken(parent, level=self.settings['level'], buttons=self.settings['buttons'])
 
 class RenderContent(components.RenderComponent):
     def createHTML(self, parent, token, page):
-        node = common.find_page(page.root, token['node'])
-        self._dump(parent, node, page)
-
-    def _dump(self, parent, node, page, level=2):
+        nodes = self.findPages(lambda p: p.local.startswith(token.location))
 
         ul = html.Tag(parent, 'ul')
-        items = [] # storage for non-directories to allow for directories to list first
-        for child in node.children:
-            li = html.Tag(None, 'li')
+        for node in nodes:
+            li = html.Tag(ul, 'li')
 
-            # ignores source/index.md
-            if child is page:
+            # ignores the page with the command (i.e., source/index.md)
+            if node is page:
                 continue
 
             # Directory
-            elif isinstance(child, pages.DirectoryNode):
-                text = html.Tag(None, 'span',
-                                string=unicode(child.name),
+            elif isinstance(node, pages.Directory):
+                text = html.Tag(li, 'span',
+                                string=unicode(node.name),
                                 class_='moose-source-directory')
 
             # File
             else:
-                loc = child.relativeDestination(page)
-                text = html.Tag(None, 'a',
-                                string=unicode(child.name.replace('.md', '')),
+                loc = node.relativeDestination(page)
+                text = html.Tag(li, 'a',
+                                string=unicode(node.name.replace('.md', '')),
                                 href=loc,
                                 class_='moose-source-file')
 
             # Enable scrollspy for top-level, see renderers.py for how this works
-            if level == 2:
-                li['data-section-level'] = level
-                li['data-section-text'] = child.name
-                li['data-section-text'] = text.text()
-                li['id'] = text.text().lower().replace(' ', '-')
-                text['class'] = 'moose-source-directory'
+            li['data-section-level'] = 2
+            li['data-section-text'] = node.name
+            li['data-section-text'] = text.text()
+            li['id'] = text.text().lower().replace(' ', '-')
+            text['class'] = 'moose-source-directory'
 
-            # Create nested, collapsible list of children
-            if child.children:
-                details = html.Tag(ul, 'details', open='open')
-                summary = html.Tag(details, 'summary')
-                html.Tag(summary, 'span', class_='moose-section-icon')
-                text.parent = summary
-
-                li.parent = details
-                self._dump(li, child, page, level + 1)
-
-            else:
-                text.parent = li
-                items.append(li)
-
-        # Add file items to the list
-        for li in items:
-            li.parent = ul
 
 class RenderAtoZ(components.RenderComponent):
     def createHTML(self, parent, token, page):
@@ -132,14 +99,15 @@ class RenderAtoZ(components.RenderComponent):
 
     def createMaterialize(self, parent, token, page):
 
-        # Initalized alphabetized storage
+        # Initialized alphabetized storage
         headings = dict()
         for letter in 'ABCDEFGHIJKLNMOPQRSTUVWXYZ':
             headings[letter] = dict()
 
         # Extract headings, default to filename if a heading is not found
-        filter_=lambda n: isinstance(n, pages.SourceNode)
-        for node in anytree.PreOrderIter(page.root, filter_=filter_):
+        func = lambda n: n.local.startswith(token['location']) and isinstance(n, pages.Source)
+        for node in self.findPages(func):
+            print 'NODE:', node
             ast = self.getSyntaxTree(node)
             h_node = common.find_heading(node, ast)
             if h_node is not None:

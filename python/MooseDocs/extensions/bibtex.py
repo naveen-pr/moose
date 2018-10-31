@@ -43,8 +43,7 @@ class BibtexExtension(command.CommandExtension):
         self.__database = BibliographyData()
 
         bib_files = []
-        for node in content.values():
-            print node
+        for node in content:
             if node.source.endswith('.bib'):
                 bib_files.append(node.source)
 
@@ -82,19 +81,11 @@ class BibtexExtension(command.CommandExtension):
 
 BibtexCite = tokens.newToken('BibtexCite', keys=[])
 BibtexBibliography = tokens.newToken('BibtexBiliography', bib_style=u'')
-
-#class BibtexCite(tokens.Token):
-#    PROPERTIES = [tokens.Property('keys', ptype=list, required=True),
-#                  tokens.Property('cite', ptype=unicode, default=u'cite')]
-#
-#class BibtexBibliography(tokens.Token):
-#    PROPERTIES = [tokens.Property('style', required=True, ptype=unicode)]
-
 class BibtexReferenceComponent(components.TokenComponent):
-    RE = re.compile(r'\['                          # open
+    RE = re.compile(r'\['                                 # open
                     r'(?P<cite>cite|citet|citep|nocite):' # cite prefix
-                    r'(?P<keys>.*?)'               # list of keys
-                    r'\]',                         # closing ]
+                    r'(?P<keys>.*?)'                      # list of keys
+                    r'\]',                                # closing ]
                     flags=re.UNICODE)
 
     def createToken(self, parent, info, page):

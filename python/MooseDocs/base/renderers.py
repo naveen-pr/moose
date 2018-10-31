@@ -122,22 +122,22 @@ class Renderer(mixins.ConfigObject, mixins.ComponentObject):
 
         This is called by the Tranlator object.
         """
-        if isinstance(page, pages.SourceNode):
+        if isinstance(page, pages.Source):
             create_directory(page.destination)
-            LOG.debug('WRITE %s -> %s', page.source, page.destination)
+            LOG.debug('WRITE %s-->%s', page.source, page.destination)
             with codecs.open(page.destination, 'w', encoding='utf-8') as fid:
                 fid.write(result.write())
 
-        elif isinstance(page, pages.FileNode):
+        elif isinstance(page, pages.File):
             create_directory(page.destination)
             LOG.debug('COPY: %s-->%s', page.source, page.destination)
             shutil.copyfile(page.source, page.destination)
 
-        elif isinstance(page, pages.DirectoryNode):
+        elif isinstance(page, pages.Directory):
             create_directory(page.destination)
 
         else:
-            LOG.error('Unknown Node type: %s', type(node))
+            LOG.error('Unknown Node type: %s', type(page))
 
     def _method(self, component):
         """

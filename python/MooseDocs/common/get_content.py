@@ -160,7 +160,6 @@ def get_content(items, in_ext, out_ext):
             for i in range(1, len(parts)):
                 dir_key = os.path.join(*parts[:i])
                 if dir_key not in nodes:
-                    print root, dir_key, os.path.join(root, dir_key)
                     nodes[dir_key] = MooseDocs.tree.pages.Directory(dir_key,
                                                                     source=os.path.join(root, dir_key))
 
@@ -169,4 +168,4 @@ def get_content(items, in_ext, out_ext):
             if key not in nodes:
                 nodes[key] = _create_file_node(key, filename, in_ext, out_ext)
 
-    return nodes
+    return nodes.values()

@@ -9,6 +9,7 @@ import time
 import json
 import random
 import multiprocessing
+import types
 import anytree
 
 import mooseutils
@@ -101,6 +102,9 @@ class Translator(mixins.ConfigObject):
         self.__page_meta_data = None
         self.__page_dependencies = None
 
+        # Caching for pages
+        self.__page_cache = dict()
+
     @property
     def extensions(self):
        """Return list of loaded Extension objects."""
@@ -113,8 +117,13 @@ class Translator(mixins.ConfigObject):
 
     @property
     def renderer(self):
-       """Return the Renderer object."""
-       return self.__renderer
+        """Return the Renderer object."""
+        return self.__renderer
+
+    @property
+    def content(self):
+        """Return the content."""
+        return self.__content
 
     def update(self, **kwargs):
         """Update configuration and handle destination."""
@@ -137,30 +146,50 @@ class Translator(mixins.ConfigObject):
             self.__page_syntax_trees[page._Page__unique_id] = ast
         return ast
 
-    def findPages(self, name):
+    def findPages(self, arg):
         """
-        Locate all Page objects that have a local name ending with the supplied name.
+        Locate all Page objects that operates on a string or uses a filter.
+
+        Usage:
+           nodes = self.findPages('name')
+           nodes = self.findPages(lambda p: p.name == 'foo')
+
+        The string version is equivalent to:
+           nodes = self.findPages(lambda p: p.local.endswith(arg))
 
         Inputs:
-            name[str]: The partial name to search against.
+            name[str|unicode|lambda]: The partial name to search against or the function to use
+                                      to test for matches.
         """
         if MooseDocs.LOG_LEVEL == logging.DEBUG:
-            check_type('name', name, (str, unicode))
-        return [page for page in self.__content if page.local.endswith(name)]
+            check_type('name', arg, (str, unicode, types.FunctionType))
 
-    def findPage(self, name):
+        if isinstance(arg, (str, unicode)):
+            items = self.__page_cache.get(arg, None)
+            if items is None:
+                func = lambda p: page.local.endswith(arg)
+                items = [page for page in self.__content if func(page)]
+                self.__page_cache[arg] = items
+
+        else:
+            items = [page for page in self.__content if arg(page)]
+
+        return items
+
+    def findPage(self, arg):
         """
         Locate a single Page object that has a local name ending with the supplied name.
+
         Inputs:
-            name[str]: The partial name to search against.
+            see findPages
         """
-        nodes = self.findPages(name)
+        nodes = self.findPages(arg)
         if len(nodes) == 0:
             msg = "Unable to locate a page that ends with the name '{}'.".format(name)
             raise MooseDocsException(msg)
 
         elif len(nodes) > 1:
-            msg = "Multiple pages with a name that end swith '{}' were found:".format(name)
+            msg = "Multiple pages with a name that ends with '{}' were found:".format(name)
             for node in nodes:
                 msg += '\n  {} (source: {})'.format(node.local, node.source)
             raise MooseDocsException(msg)
@@ -200,7 +229,7 @@ class Translator(mixins.ConfigObject):
         for ext in self.__extensions:
             self.__checkRequires(ext)
 
-        for node in self.__content.values():
+        for node in self.__content:
             node.base = destination
 
         self.__initialized = True
@@ -214,7 +243,6 @@ class Translator(mixins.ConfigObject):
             nodes[list]: A list of Page object to build, if not provided all pages will be created.
 
         NOTE: There is still additional work that need to be done to improve the performance of this,
-
 
         The translator execute method is responsible for converting all pages.Page objects
         contained within the self.__root member variable, these shall be rewhiferred to as "pages"
@@ -265,14 +293,12 @@ class Translator(mixins.ConfigObject):
               It might be possible to improve performance by implementing a custom __getstate__
               method that only packages the attributes and properties.
 
-
         NOTES: Page object must limit stored data, because they all contain each other.
-
         """
         common.check_type('num_threads', num_threads, int)
         self.__assertInitialize()
 
-        # Extract the SourceNodes for translation
+        # Extract the Source objects for translation
         source_nodes = [n for n in self.__content if isinstance(n, pages.Source)]
         other_nodes = [n for n in self.__content if not isinstance(n, pages.Source)]
 
@@ -291,12 +317,12 @@ class Translator(mixins.ConfigObject):
         t = self.__executeExtensionFunction('preExecute', self.__content)
         LOG.info('  Finished preExecute methods [%s sec]', t)
 
-        if not self.get('incremental_build'):
-        #if False:
+        #if not self.get('incremental_build'):
+        if False:
             self.__page_syntax_trees = [None]*num_nodes # cache for getSyntaxTree
             LOG.info('  Building pages...')
-            #t = self.__build(source_nodes, num_threads)
-            t = None; mooseutils.run_profile(self.__build_target, source_nodes)
+            t = self.__build(source_nodes, num_threads)
+            #t = None; mooseutils.run_profile(self.__build_target, source_nodes)
             LOG.info('  Building complete [%s sec.]', t)
 
         else:
@@ -440,7 +466,7 @@ class Translator(mixins.ConfigObject):
                     conn.send(node.dependencies)
                     conn.send(meta)
 
-                elif isinstance(node, pages.SourceNode):
+                elif isinstance(node, pages.Source):
                     msg = "The source file, %s, does not contain any content."
                     LOG.warning(msg, node.source)
 

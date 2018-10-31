@@ -106,19 +106,23 @@ def addProperty(*args, **kwargs):
         if not isinstance(prop, Property):
             msg = "The created object must be a 'Property' object but '{}' created."
             raise TypeError(msg.format(type(prop)))
-
-        properties = set()
-        for sub_cls in inspect.getmro(cls):
-            print cls, sub_cls
-            properties.update(AutoPropertyMixin.__DESCRIPTORS__[sub_cls])
-        properties.add(prop)
-        cls.__DESCRIPTORS__[cls].update(properties)
-        print cls, prop.name, prop
-
-        setattr(cls, prop.name, prop)
+        _init_properties(cls, prop)
         return cls
 
     return create
+
+def _init_properties(cls, *props):
+    """Helper method for adding descriptors to a class (not instance)."""
+
+    properties = set()
+    for sub_cls in inspect.getmro(cls):
+        properties.update(AutoPropertyMixin.__DESCRIPTORS__[sub_cls])
+    for prop in props:
+        properties.add(prop)
+        setattr(cls, prop.name, prop)
+
+    cls.__DESCRIPTORS__[cls].update(properties)
+    cls.__INITIALIZED__.add(cls)
 
 class AutoPropertyMixin(object):
     """
@@ -169,6 +173,7 @@ class AutoPropertyMixin(object):
 
     #: Storage for Property object descriptors, this should not be messed with.
     __DESCRIPTORS__ = collections.defaultdict(set)
+    __INITIALIZED__ = set()
 
     def __init__(self, **kwargs):
 
@@ -176,8 +181,10 @@ class AutoPropertyMixin(object):
         self.__properties = dict() # storage for property values, addProperty items
         self.__attributes = dict() # storage for attributes (i.e., unknown key, values)
 
-        # Create properties and set defaults
-        print self.__DESCRIPTORS__.keys(), self.__class__
+        # Initialize properties, this happens automatically if addProperty decorator is used,
+        # but when it is not the properties from the parent classes need to get added.
+        if self.__class__ not in self.__INITIALIZED__:
+            _init_properties(self.__class__)
 
         descriptors = self.__DESCRIPTORS__[self.__class__]
         for prop in descriptors:
@@ -197,8 +204,6 @@ class AutoPropertyMixin(object):
         # Check properties
         for prop in descriptors:
             prop.onPropertyCheck(self)
-
-        print self.__properties
 
     @property
     def attributes(self):
