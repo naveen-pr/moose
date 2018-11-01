@@ -464,9 +464,8 @@ class RenderOrderedList(components.RenderComponent):
 
     def createMaterialize(self, parent, token, page): #pylint: disable=no-self-use
         tag = self.createHTML(parent, token, page)
-        print token
-        #if token['browser_default']:
-        #    tag.addClass('browser-default')
+        if token.get('browser_default', True):
+            tag.addClass('browser-default')
         tag['start'] = token['start']
         return tag
 
@@ -479,7 +478,8 @@ class RenderUnorderedList(components.RenderComponent):
 
     def createMaterialize(self, parent, token, page): #pylint: disable=no-self-use
         tag = self.createHTML(parent, token, page)
-        if token['browser_default']:
+        # TODO: accessing token['browser_default'] cause problems, I can't figure out why
+        if token.get('browser_default', True):
             tag.addClass('browser-default')
         return tag
 

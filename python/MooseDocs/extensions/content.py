@@ -31,7 +31,6 @@ class ContentExtension(command.CommandExtension):
         self.addCommand(reader, ContentCommand())
         self.addCommand(reader, AtoZCommand())
         renderer.add('Collapsible', RenderCollapsible())
-        #renderer.add('ContentToken', RenderContent())
         renderer.add('AtoZToken', RenderAtoZ())
 
 class ContentCommand(command.CommandComponent):
@@ -47,7 +46,6 @@ class ContentCommand(command.CommandComponent):
     def createToken(self, parent, info, page):
 
         location = self.settings['location']
-
         tree = dict()
         tree[(u'',)] = tokens.UnorderedList(parent, browser_default=False)
         func = lambda p: p.local.startswith(location) and isinstance(p, pages.Directory)
@@ -64,7 +62,6 @@ class ContentCommand(command.CommandComponent):
             loc = node.relativeDestination(page)
             li = tokens.ListItem(tree[key])
             tokens.Link(li, url=loc, string=node.name, class_='moose-source-item', tooltip=False)
-
         return parent
 
 class AtoZCommand(command.CommandComponent):
@@ -89,44 +86,6 @@ class RenderCollapsible(components.RenderComponent):
         html.Tag(summary, 'span', class_='moose-section-icon')
         html.Tag(summary, 'span', string=token['summary'])
         return details
-
-class RenderContent(components.RenderComponent):
-    def createHTML(self, parent, token, page):
-
-
-
-        """
-        nodes = self.findPages(lambda p: p.local.startswith(token['location']))
-
-        ul = html.Tag(parent, 'ul')
-        for node in nodes:
-
-            #if isinstance(
-            #folders = nod.local.split(os.sep)
-
-
-
-            li = html.Tag(ul, 'li')
-
-            # Directory
-            if isinstance(node, pages.Directory):
-                continue
-
-            # File
-            else:
-                loc = node.relativeDestination(page)
-                text = html.Tag(li, 'a',
-                                string=unicode(node.name.replace('.md', '')),
-                                href=loc,
-                                class_='moose-source-file')
-
-            # Enable scrollspy for top-level, see renderers.py for how this works
-            li['data-section-level'] = 2
-            li['data-section-text'] = node.name
-            li['data-section-text'] = text.text()
-            li['id'] = text.text().lower().replace(' ', '-')
-            text['class'] = 'moose-source-directory'
-        """
 
 class RenderAtoZ(components.RenderComponent):
     def createHTML(self, parent, token, page):

@@ -1,6 +1,7 @@
 #pylint: disable=missing-docstring
 
 import os
+import re
 
 from mooseutils.yaml_load import yaml_load
 
@@ -35,6 +36,7 @@ class PackageExtension(command.CommandExtension):
 
         config['link'] = (r'http://www.mooseframework.org/moose_packages',
                           "Location of packages.")
+
         return config
 
     def extend(self, reader, renderer):
@@ -105,15 +107,18 @@ class PackageCodeReplace(command.CommandComponent):
 
     def createToken(self, parent, info, page):
         content = info['inline'] if 'inline' in info else info['block']
-
-        for package in self.extension.keys():
-            version = self.extension.get(package)
-            if package != 'moose_packages':
-                content = content.replace('__' + package.upper() + '__', unicode(version))
-
+        content = re.sub(r'__(?P<package>[A-Z]+)__', self.subFunction, content, flags=re.UNICODE)
         tokens.Code(parent, style="max-height:{};".format(self.settings['max-height']),
-                    language=self.settings['language'], code=content)
+                    language=self.settings['language'], content=content)
         return parent
+
+    def subFunction(self, match):
+        key = match.group('package')
+        for package in self.extension.keys():
+            if package.upper() == key:
+                version = self.extension.get(package)
+                return version
+        return match.group(0)
 
 class PackageTextReplace(command.CommandComponent):
     """

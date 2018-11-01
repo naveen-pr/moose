@@ -28,8 +28,8 @@ class IncludeCommand(command.CommandComponent):
         """
         Tokenize the included content and create dependency between pages.
         """
-        include_page = common.find_page(page.root, info['subcommand'])
-        include_page.addDependency(page.fullpath)
+        include_page = self.findPage(info['subcommand'])
+        include_page.addDependency(page.local)
 
         content, line = common.extractContent(self.reader.read(include_page), self.settings)
         self.reader.tokenize(parent, content, include_page, line=line)

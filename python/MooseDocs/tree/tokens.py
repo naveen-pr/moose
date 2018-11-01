@@ -35,8 +35,6 @@ def newToken(name, **defaults):
         pass # Future consistency checking
 
     def tokenGenerator(parent, **kwargs):
-        print 'NAME:', name, defaults
-
         if MooseDocs.LOG_LEVEL == logging.DEBUG:
             pass # Future consistency checking
         inputs = copy.copy(defaults)
@@ -123,7 +121,7 @@ Number = newToken(u'Number', content=u'')
 Code = newToken(u'Code', content=u'', language=u'text', escape=True)
 Heading = newToken(u'Heading', level=1)
 Paragraph = newToken(u'Paragraph')
-OrderedList = newToken(u'OrderedList', browser_default=True)#, start=1)
+OrderedList = newToken(u'OrderedList', browser_default=True, start=1)
 UnorderedList = newToken(u'UnorderedList', browser_default=True)
 ListItem = newToken(u'ListItem')
 Link = newToken(u'Link', url=u'', tooltip=True)
