@@ -49,24 +49,21 @@ class ContentCommand(command.CommandComponent):
         location = self.settings['location']
 
         tree = dict()
-        tree[(u'',)] = tokens.UnorderedList(parent)
+        tree[(u'',)] = tokens.UnorderedList(parent, browser_default=False)
         func = lambda p: p.local.startswith(location) and isinstance(p, pages.Directory)
         for node in self.findPages(func):
-            key = tuple(node.local.strip(os.sep).replace(location, '').split(os.sep))#[1:]
+            key = tuple(node.local.strip(os.sep).replace(location, '').split(os.sep))
             if key not in tree:
-                li = tokens.ListItem(tree[key[:-1]], string=key[-1])
-                tree[key] = tokens.UnorderedList(li)
-                #tree[key] = anytree.AnyNode(tree[key[:-1]], page=node)
+                col = Collapsible(tree[key[:-1]], summary=key[-1])
+                li = tokens.ListItem(col, class_='moose-source-item', tooltip=False)
+                tree[key] = tokens.UnorderedList(li, browser_default=False)
 
         func = lambda p: p.local.startswith(location) and isinstance(p, pages.Source)
         for node in self.findPages(func):
             key = tuple(os.path.dirname(node.local).strip(os.sep).replace(location, '').split(os.sep))
             loc = node.relativeDestination(page)
             li = tokens.ListItem(tree[key])
-            tokens.Link(li, url=loc, string=node.name)
-
-
-        print tree[(u'',)]
+            tokens.Link(li, url=loc, string=node.name, class_='moose-source-item', tooltip=False)
 
         return parent
 
@@ -87,12 +84,10 @@ class AtoZCommand(command.CommandComponent):
 class RenderCollapsible(components.RenderComponent):
     def createHTML(self, parent, token, page):
 
-        print 'here'
-
         details = html.Tag(parent, 'details')
         summary = html.Tag(details, 'summary')
         html.Tag(summary, 'span', class_='moose-section-icon')
-        html.Tag(summary, 'span', class_='moose-source-directory', string=token['summary'])
+        html.Tag(summary, 'span', string=token['summary'])
         return details
 
 class RenderContent(components.RenderComponent):

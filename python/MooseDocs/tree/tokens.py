@@ -30,10 +30,13 @@ def newToken(name, **defaults):
 
     TODO: Add a default system that has type checking and required checking (only in DEBUG)
     """
+
     if MooseDocs.LOG_LEVEL == logging.DEBUG:
         pass # Future consistency checking
 
     def tokenGenerator(parent, **kwargs):
+        print 'NAME:', name, defaults
+
         if MooseDocs.LOG_LEVEL == logging.DEBUG:
             pass # Future consistency checking
         inputs = copy.copy(defaults)
@@ -52,6 +55,9 @@ class Token(NodeBase):
                         settings property and may be retrieved via the various access methods.
     """
     def __init__(self, name=None, parent=None, **kwargs):
+        for key, value in kwargs.iteritems():
+            if key.endswith('_'):
+                kwargs[key[:-1]] = kwargs.pop(key)
         kwargs.setdefault('recursive', True)
         kwargs.setdefault('string', None)
         super(Token, self).__init__(name, parent, **kwargs)
@@ -117,8 +123,8 @@ Number = newToken(u'Number', content=u'')
 Code = newToken(u'Code', content=u'', language=u'text', escape=True)
 Heading = newToken(u'Heading', level=1)
 Paragraph = newToken(u'Paragraph')
-OrderedList = newToken(u'OrderedList', start=1)
-UnorderedList = newToken(u'UnorderedList')
+OrderedList = newToken(u'OrderedList', browser_default=True)#, start=1)
+UnorderedList = newToken(u'UnorderedList', browser_default=True)
 ListItem = newToken(u'ListItem')
 Link = newToken(u'Link', url=u'', tooltip=True)
 Shortcut = newToken(u'Shortcut', key=u'', link=u'')

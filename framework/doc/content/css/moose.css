@@ -995,7 +995,7 @@ details[open] .moose-section-content {
 }
 
 /* MooseDocs.extensions.content */
-.moose-source-directory{
+.moose-source-item{
     font-weight:400;
     margin-top:0;
     margin-bottom: 8px;
