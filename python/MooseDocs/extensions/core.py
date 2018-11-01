@@ -432,7 +432,6 @@ class RenderBreak(components.RenderComponent):
 
 class RenderLink(components.RenderComponent):
     def createHTML(self, parent, token, page): #pylint: disable=no-self-use
-        print token
         return html.Tag(parent, 'a', token, href=token['url'])
 
     def createMaterialize(self, parent, token, page):

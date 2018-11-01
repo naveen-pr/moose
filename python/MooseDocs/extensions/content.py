@@ -13,6 +13,7 @@ from MooseDocs.extensions import command
 def make_extension(**kwargs):
     return ContentExtension(**kwargs)
 
+Collapsible = tokens.newToken('Collapsible', summary=u'')
 ContentToken = tokens.newToken('ContentToken', location=u'')
 AtoZToken = tokens.newToken('AtoZToken', location=u'', level=None, buttons=bool)
 
@@ -29,6 +30,7 @@ class ContentExtension(command.CommandExtension):
         self.requires(command)
         self.addCommand(reader, ContentCommand())
         self.addCommand(reader, AtoZCommand())
+        renderer.add('Collapsible', RenderCollapsible())
         #renderer.add('ContentToken', RenderContent())
         renderer.add('AtoZToken', RenderAtoZ())
 
@@ -47,24 +49,24 @@ class ContentCommand(command.CommandComponent):
         location = self.settings['location']
 
         tree = dict()
-        tree[()] = ContentToken(parent)
+        tree[(u'',)] = tokens.UnorderedList(parent)
+        func = lambda p: p.local.startswith(location) and isinstance(p, pages.Directory)
+        for node in self.findPages(func):
+            key = tuple(node.local.strip(os.sep).replace(location, '').split(os.sep))#[1:]
+            if key not in tree:
+                li = tokens.ListItem(tree[key[:-1]], string=key[-1])
+                tree[key] = tokens.UnorderedList(li)
+                #tree[key] = anytree.AnyNode(tree[key[:-1]], page=node)
+
         func = lambda p: p.local.startswith(location) and isinstance(p, pages.Source)
         for node in self.findPages(func):
-            key = tuple(node.local.replace(location, '').strip('/').split('/'))
-
-            for i in range(1, len(key)):
-                dir_key = key[:i]
-                if dir_key not in tree:
-                    ul = tokens.UnorderedList(tree[key[:i-1]])
-                    tokens.String(ul, content=unicode(dir_key[-1]), class_='moose-source-directory')
-                    tree[dir_key] = ul
-
-            li = tokens.ListItem(tree[key[:-1]])
+            key = tuple(os.path.dirname(node.local).strip(os.sep).replace(location, '').split(os.sep))
             loc = node.relativeDestination(page)
-            tokens.Link(li,
-                        url=loc,
-                        string=unicode(key[-1]),
-                        class_='moose-source-file')
+            li = tokens.ListItem(tree[key])
+            tokens.Link(li, url=loc, string=node.name)
+
+
+        print tree[(u'',)]
 
         return parent
 
@@ -82,8 +84,21 @@ class AtoZCommand(command.CommandComponent):
     def createToken(self, parent, info, page):
         return AtoZToken(parent, level=self.settings['level'], buttons=self.settings['buttons'])
 
+class RenderCollapsible(components.RenderComponent):
+    def createHTML(self, parent, token, page):
+
+        print 'here'
+
+        details = html.Tag(parent, 'details')
+        summary = html.Tag(details, 'summary')
+        html.Tag(summary, 'span', class_='moose-section-icon')
+        html.Tag(summary, 'span', class_='moose-source-directory', string=token['summary'])
+        return details
+
 class RenderContent(components.RenderComponent):
     def createHTML(self, parent, token, page):
+
+
 
         """
         nodes = self.findPages(lambda p: p.local.startswith(token['location']))

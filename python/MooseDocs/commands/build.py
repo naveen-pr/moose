@@ -158,9 +158,10 @@ def main(options):
     translator.init()
 
     # Disable extensions based on command line arguments
-    for ext in translator.extensions:
-        if ext._name in options.disable:
-            ext.setActive(False)
+    if options.disable:
+        for ext in translator.extensions:
+            if ext._name in options.disable:
+                ext.setActive(False)
 
     # Replace "home" with local server
     if options.serve:
