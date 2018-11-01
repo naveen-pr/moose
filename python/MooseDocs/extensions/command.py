@@ -105,6 +105,11 @@ class CommandBase(components.TokenComponent):
         token = obj.createToken(parent, info, page)
         return token
 
+    def setTranslator(self, translator):
+        for comp in CommandExtension.EXTENSION_COMMANDS.values():
+            comp.setTranslator(translator)
+
+
 class BlockInlineCommand(CommandBase):
     RE = re.compile(r'(?:\A|\n{2,})^'           # block begin with empty line
                     r'!(?P<command>\w+)(?: |$)' # command followed by space or end of line

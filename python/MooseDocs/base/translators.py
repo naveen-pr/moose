@@ -218,6 +218,7 @@ class Translator(mixins.ConfigObject):
             common.check_type('extensions', ext, MooseDocs.base.components.Extension)
             ext.extend(self.__reader, self.__renderer)
             for comp in self.__reader.components:
+                comp.setTranslator(self) # see Translator::execute and RenderComponent::setTranslator
                 if comp.extension is None:
                     comp.extension = ext
             for comp in self.__renderer.components:

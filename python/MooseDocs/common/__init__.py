@@ -19,3 +19,4 @@ from report_error import report_error
 from find_heading import find_heading
 from exceptions import MooseDocsException
 from get_content import get_content
+from build_page_tree import build_page_tree

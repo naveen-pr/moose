@@ -1,4 +1,5 @@
 #pylint: disable=missing-docstring
+import os
 import collections
 import uuid
 import anytree
@@ -13,7 +14,7 @@ def make_extension(**kwargs):
     return ContentExtension(**kwargs)
 
 ContentToken = tokens.newToken('ContentToken', location=u'')
-AtoZToken = tokens.newToken('AtoZToken', level=None, buttons=bool)
+AtoZToken = tokens.newToken('AtoZToken', location=u'', level=None, buttons=bool)
 
 class ContentExtension(command.CommandExtension):
     """
@@ -28,7 +29,7 @@ class ContentExtension(command.CommandExtension):
         self.requires(command)
         self.addCommand(reader, ContentCommand())
         self.addCommand(reader, AtoZCommand())
-        renderer.add('ContentToken', RenderContent())
+        #renderer.add('ContentToken', RenderContent())
         renderer.add('AtoZToken', RenderAtoZ())
 
 class ContentCommand(command.CommandComponent):
@@ -42,7 +43,29 @@ class ContentCommand(command.CommandComponent):
         return settings
 
     def createToken(self, parent, info, page):
-        ContentToken(parent, location=self.settings['location'])
+
+        location = self.settings['location']
+
+        tree = dict()
+        tree[()] = ContentToken(parent)
+        func = lambda p: p.local.startswith(location) and isinstance(p, pages.Source)
+        for node in self.findPages(func):
+            key = tuple(node.local.replace(location, '').strip('/').split('/'))
+
+            for i in range(1, len(key)):
+                dir_key = key[:i]
+                if dir_key not in tree:
+                    ul = tokens.UnorderedList(tree[key[:i-1]])
+                    tokens.String(ul, content=unicode(dir_key[-1]), class_='moose-source-directory')
+                    tree[dir_key] = ul
+
+            li = tokens.ListItem(tree[key[:-1]])
+            loc = node.relativeDestination(page)
+            tokens.Link(li,
+                        url=loc,
+                        string=unicode(key[-1]),
+                        class_='moose-source-file')
+
         return parent
 
 class AtoZCommand(command.CommandComponent):
@@ -61,21 +84,23 @@ class AtoZCommand(command.CommandComponent):
 
 class RenderContent(components.RenderComponent):
     def createHTML(self, parent, token, page):
-        nodes = self.findPages(lambda p: p.local.startswith(token.location))
+
+        """
+        nodes = self.findPages(lambda p: p.local.startswith(token['location']))
 
         ul = html.Tag(parent, 'ul')
         for node in nodes:
+
+            #if isinstance(
+            #folders = nod.local.split(os.sep)
+
+
+
             li = html.Tag(ul, 'li')
 
-            # ignores the page with the command (i.e., source/index.md)
-            if node is page:
-                continue
-
             # Directory
-            elif isinstance(node, pages.Directory):
-                text = html.Tag(li, 'span',
-                                string=unicode(node.name),
-                                class_='moose-source-directory')
+            if isinstance(node, pages.Directory):
+                continue
 
             # File
             else:
@@ -91,7 +116,7 @@ class RenderContent(components.RenderComponent):
             li['data-section-text'] = text.text()
             li['id'] = text.text().lower().replace(' ', '-')
             text['class'] = 'moose-source-directory'
-
+        """
 
 class RenderAtoZ(components.RenderComponent):
     def createHTML(self, parent, token, page):
@@ -107,7 +132,6 @@ class RenderAtoZ(components.RenderComponent):
         # Extract headings, default to filename if a heading is not found
         func = lambda n: n.local.startswith(token['location']) and isinstance(n, pages.Source)
         for node in self.findPages(func):
-            print 'NODE:', node
             ast = self.getSyntaxTree(node)
             h_node = common.find_heading(node, ast)
             if h_node is not None:
