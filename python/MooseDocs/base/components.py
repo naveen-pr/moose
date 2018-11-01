@@ -296,11 +296,11 @@ class RenderComponent(Component, mixins.RendererObject):
         Component.__init__(self)
         mixins.RendererObject.__init__(self)
 
-    def getSyntaxTree(self, page):
+    def getSyntaxTree(self, page, **kwargs):
         """
         Return the Syntax tree for the supplied page.
 
         This is restricted to the RenderComponent to allow to support the various types of
         parallel builds, see Translator execute.
         """
-        return self._Component__translator.getSyntaxTree(page)
+        return self._Component__translator.getSyntaxTree(page, **kwargs)

@@ -132,18 +132,30 @@ class Translator(mixins.ConfigObject):
             kwargs['destination'] = mooseutils.eval_path(dest)
         mixins.ConfigObject.update(self, **kwargs)
 
-    def getSyntaxTree(self, page):
+    def getSyntaxTree(self, page, minimal=False):
         """
         Return the AST for the supplied page, this is used by the RenderComponent.
 
         see Translator::execute and RenderComponent::setTranslator/getSyntaxTree
         """
+        active = []
+        if minimal:
+            for ext in self.extensions:
+                active.append(ext.active)
+                if ext._name != 'core':
+                    ext.setActive(False)
+
         ast = self.__page_syntax_trees[page._Page__unique_id]
         if ast is None:
             content = self.reader.read(page)
             ast = self.reader.getRoot()
             self.reader.tokenize(ast, content, page)
             self.__page_syntax_trees[page._Page__unique_id] = ast
+
+        if minimal:
+            for a, ext in zip(active, self.extensions):
+                ext.setActive(a)
+
         return ast
 
     def findPages(self, arg):
@@ -319,7 +331,7 @@ class Translator(mixins.ConfigObject):
         LOG.info('  Finished preExecute methods [%s sec]', t)
 
         #if not self.get('incremental_build'):
-        if False:
+        if True:#False:
             self.__page_syntax_trees = [None]*num_nodes # cache for getSyntaxTree
             LOG.info('  Building pages...')
             t = self.__build(source_nodes, num_threads)
@@ -334,6 +346,7 @@ class Translator(mixins.ConfigObject):
             self.__page_meta_data = [None]*num_nodes
             self.__page_dependencies = [None]*num_nodes
 
+            # Reading/tokenize
             LOG.info('  Creating ASTs...')
             t = self.__tokenize(source_nodes, num_threads)
             LOG.info('  ASTs Finished [%s sec.]', t)

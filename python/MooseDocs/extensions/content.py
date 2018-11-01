@@ -101,7 +101,7 @@ class RenderAtoZ(components.RenderComponent):
         # Extract headings, default to filename if a heading is not found
         func = lambda n: n.local.startswith(token['location']) and isinstance(n, pages.Source)
         for node in self.findPages(func):
-            ast = self.getSyntaxTree(node)
+            ast = self.getSyntaxTree(node, minimal=True)
             h_node = common.find_heading(node, ast)
             if h_node is not None:
                 r = html.Tag(None, 'span')

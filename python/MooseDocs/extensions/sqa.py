@@ -196,7 +196,7 @@ class SQACrossReferenceCommand(SQARequirementsCommand):
         for requirements in self.extension.requirements.itervalues():
             for req in requirements:
                 for d in req.design:
-                    node = common.find_page(page.root, d)
+                    node = self.findPage(page.root, d)
                     design[node].append(req)
 
         for node, requirements in design.iteritems():

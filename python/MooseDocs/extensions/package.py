@@ -102,7 +102,7 @@ class PackageCodeReplace(command.CommandComponent):
         settings = command.CommandComponent.defaultSettings()
         settings['max-height'] = (u'350px', "The default height for listing content.")
         settings['language'] = (u'bash', "The language to use for highlighting, if not supplied " \
-                                "it will be inferred from the extension (if possible).")
+                                         "it will be inferred from the extension (if possible).")
         return settings
 
     def createToken(self, parent, info, page):
@@ -117,7 +117,7 @@ class PackageCodeReplace(command.CommandComponent):
         for package in self.extension.keys():
             if package.upper() == key:
                 version = self.extension.get(package)
-                return version
+                return unicode(version)
         return match.group(0)
 
 class PackageTextReplace(command.CommandComponent):

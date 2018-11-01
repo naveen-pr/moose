@@ -117,7 +117,7 @@ class RenderLocalLink(components.RenderComponent):
     def createHTML(self, parent, token, page):
 
         bookmark = token['bookmark']
-        ast = self.getSyntaxTree(page)
+        ast = self.getSyntaxTree(page, minimal=True)
         heading = common.find_heading(page, ast, bookmark)
         a = html.Tag(parent, 'a', href=u'#{}'.format(bookmark))
         if heading:
@@ -142,7 +142,7 @@ class RenderAutoLink(components.RenderComponent):
 
         link = tokens.Link(None, url=url)
         if not token.children:
-            ast = self.getSyntaxTree(desired)
+            ast = self.getSyntaxTree(desired, minimal=True)
             heading = common.find_heading(desired, ast, bookmark)
             if heading is not None:
                 for child in heading:

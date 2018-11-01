@@ -263,10 +263,10 @@ class MaterializeRenderer(HTMLRenderer):
 
         # <head> content
         self._addHead(head, page)
-        self._addRepo(nav, page)
+ #       self._addRepo(nav, page)
         self._addName(nav, page)
-        self._addNavigation(nav, page)
-        self._addBreadcrumbs(container, page)
+ #       self._addNavigation(nav, page)
+       # self._addBreadcrumbs(container, page)
         self._addSearch(nav, page)
 
         row = html.Tag(container, 'div', class_="row")
