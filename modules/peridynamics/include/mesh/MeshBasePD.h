@@ -97,6 +97,12 @@ public:
    * Function to return summation of volumes of neighbor nodes using in the deformation gradient
    * calculation for bond connecting node node_id and its neighbor neighbor_id
    */
+   Real avgVolumeSum();
+
+   /**
+    * Function to return summation of volumes of neighbor nodes using in the deformation gradient
+    * calculation for bond connecting node node_id and its neighbor neighbor_id
+    */
   Real dgBondVolumeSum(dof_id_type node_id, unsigned int neighbor_id);
 
   /**

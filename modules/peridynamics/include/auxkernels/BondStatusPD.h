@@ -53,6 +53,22 @@ protected:
 
   /// Material property containing the stress
   const MaterialProperty<RankTwoTensor> * _stress;
+
+  /// Additional damage criteria
+  MooseVariable * _additional_damage_criterion;
+
+  /// Damage index
+  MooseVariable * _damage_index;
+
+  /// Surface correction
+  const bool _surface_correction;
+
+  /// Limit Damage
+  const bool _limit_damage;
+
+  /// Get serialized solution from Auxiliary System
+  NumericVector<Number> & _serialized_solution;
+
 };
 
 #endif // BONDSTATUSPD_H

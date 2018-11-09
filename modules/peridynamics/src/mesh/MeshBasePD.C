@@ -242,6 +242,16 @@ MeshBasePD::volumeSum(dof_id_type node_id)
 }
 
 Real
+MeshBasePD::avgVolumeSum()
+{
+  Real total_volume_sum = 0.0;
+  for (unsigned int i = 0; i < _total_nodes; ++i)
+    total_volume_sum = total_volume_sum + _pdnode[i].volumesum;
+
+  return total_volume_sum/_total_nodes;
+}
+
+Real
 MeshBasePD::dgBondVolumeSum(dof_id_type node_id, unsigned int neighbor_id)
 {
   return _dg_bond_volumesum[node_id][neighbor_id];
