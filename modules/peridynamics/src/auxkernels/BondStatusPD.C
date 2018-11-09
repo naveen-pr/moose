@@ -74,9 +74,6 @@ Real
 BondStatusPD::computeValue()
 {
 
-  if (_t > 0.04)
-    throw MooseException("Moose exception from BondStatusPD");
-
   bool insufficient_bonds = false;
 
     if ( _limit_damage == true){
