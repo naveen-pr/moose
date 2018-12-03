@@ -31,23 +31,25 @@ MechanicsBaseNOSPD::MechanicsBaseNOSPD(const InputParameters & parameters)
     _ddgraddu(getMaterialProperty<RankTwoTensor>("ddeformation_gradient_du")),
     _ddgraddv(getMaterialProperty<RankTwoTensor>("ddeformation_gradient_dv")),
     _ddgraddw(getMaterialProperty<RankTwoTensor>("ddeformation_gradient_dw")),
-    _Cijkl(getMaterialProperty<RankFourTensor>("elasticity_tensor"))
+    _Cijkl(getMaterialProperty<RankFourTensor>("elasticity_tensor")),
+    _jacobian_mult(getMaterialProperty<RankFourTensor>("Jacobian_mult"))
 {
 }
 
 RankTwoTensor
 MechanicsBaseNOSPD::computeDSDU(unsigned int component, unsigned int nd)
 {
+
   // compute the derivative of stress w.r.t the solution components for small strain
   RankTwoTensor dSdU;
   if (component == 0)
-    dSdU = _Cijkl[nd] * 0.5 *
+    dSdU = _jacobian_mult[nd] * 0.5 *
            (_ddgraddu[nd].transpose() * _dgrad[nd] + _dgrad[nd].transpose() * _ddgraddu[nd]);
   else if (component == 1)
-    dSdU = _Cijkl[nd] * 0.5 *
+    dSdU = _jacobian_mult[nd] * 0.5 *
            (_ddgraddv[nd].transpose() * _dgrad[nd] + _dgrad[nd].transpose() * _ddgraddv[nd]);
   else if (component == 2)
-    dSdU = _Cijkl[nd] * 0.5 *
+    dSdU = _jacobian_mult[nd] * 0.5 *
            (_ddgraddw[nd].transpose() * _dgrad[nd] + _dgrad[nd].transpose() * _ddgraddw[nd]);
 
   return dSdU;

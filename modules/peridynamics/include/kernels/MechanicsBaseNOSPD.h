@@ -42,6 +42,7 @@ protected:
   const MaterialProperty<RankTwoTensor> & _ddgraddv;
   const MaterialProperty<RankTwoTensor> & _ddgraddw;
   const MaterialProperty<RankFourTensor> & _Cijkl;
+  const MaterialProperty<RankFourTensor> & _jacobian_mult;
   ///@}
 };
 
