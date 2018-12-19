@@ -100,7 +100,7 @@ SmallStrainMechanicsNOSPD::computeNonlocalJacobian()
       dFdUk *= _shape[cur_nd].inverse();
 
       RankTwoTensor dPxdUkx =
-          _jacobian_mult[cur_nd] * 0.5 *
+          _Cijkl[cur_nd] * 0.5 *
           (dFdUk.transpose() * _dgrad[cur_nd] + _dgrad[cur_nd].transpose() * dFdUk);
 
       // bond status for bond k
@@ -140,7 +140,7 @@ SmallStrainMechanicsNOSPD::computeLocalOffDiagJacobian(unsigned int coupled_comp
     std::vector<RankTwoTensor> dSdT(_nnodes);
     for (unsigned int nd = 0; nd < _nnodes; nd++)
       for (unsigned int es = 0; es < _deigenstrain_dT.size(); es++)
-        dSdT[nd] = -_jacobian_mult[nd] * (*_deigenstrain_dT[es])[nd];
+        dSdT[nd] = -_Cijkl[nd] * (*_deigenstrain_dT[es])[nd];
 
     for (_i = 0; _i < _test.size(); _i++)
       for (_j = 0; _j < _phi.size(); _j++)
@@ -154,7 +154,7 @@ SmallStrainMechanicsNOSPD::computeLocalOffDiagJacobian(unsigned int coupled_comp
     for (unsigned int nd = 0; nd < _nnodes; nd++)
       for (unsigned int i = 0; i < 3; i++)
         for (unsigned int j = 0; j < 3; j++)
-          dSdE33[nd](i, j) = _jacobian_mult[nd](i, j, 2, 2);
+          dSdE33[nd](i, j) = _Cijkl[nd](i, j, 2, 2);
 
     for (_i = 0; _i < _test.size(); _i++)
       for (_j = 0; _j < _phi.size(); _j++)
@@ -213,7 +213,7 @@ SmallStrainMechanicsNOSPD::computePDNonlocalOffDiagJacobian(unsigned int jvar_nu
         dFdUk *= _shape[cur_nd].inverse();
 
         RankTwoTensor dPxdUky =
-            _jacobian_mult[cur_nd] * 0.5 *
+            _Cijkl[cur_nd] * 0.5 *
             (dFdUk.transpose() * _dgrad[cur_nd] + _dgrad[cur_nd].transpose() * dFdUk);
 
         // bond status for bond k

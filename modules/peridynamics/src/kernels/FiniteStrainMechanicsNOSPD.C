@@ -174,7 +174,7 @@ FiniteStrainMechanicsNOSPD::computeLocalOffDiagJacobian(unsigned int coupled_com
     std::vector<RankTwoTensor> dSdT(_nnodes);
     for (unsigned int nd = 0; nd < _nnodes; ++nd)
       for (unsigned int es = 0; es < _deigenstrain_dT.size(); ++es)
-        dSdT[nd] = -_dgrad[nd].det() * _jacobian_mult[nd] * (*_deigenstrain_dT[es])[nd] *
+        dSdT[nd] = -_dgrad[nd].det() * _Cijkl[nd] * (*_deigenstrain_dT[es])[nd] *
                    _dgrad[nd].inverse().transpose();
 
     for (_i = 0; _i < _test.size(); ++_i)
@@ -314,7 +314,7 @@ FiniteStrainMechanicsNOSPD::computeDSDFhat(unsigned int nd)
 
   // first calculate the derivative of incremental Cauchy stress w.r.t the inverse of Fhat
   // Reference: M. M. Rashid (1993), Incremental Kinematics for finite element applications, IJNME
-  RankTwoTensor S_inc = _jacobian_mult[nd] * _E_inc[nd];
+  RankTwoTensor S_inc = _Cijkl[nd] * _E_inc[nd];
   RankFourTensor Tp1;
   Tp1.zero();
   for (unsigned int i = 0; i < 3; ++i)
@@ -330,7 +330,7 @@ FiniteStrainMechanicsNOSPD::computeDSDFhat(unsigned int nd)
                                              0.5 * _R_inc[nd](i, k) * _R_inc[nd](m, l)) +
                          _R_inc[nd](i, m) * (0.5 * I(k, n) * I(j, l) - I(n, l) * _R_inc[nd](j, k) +
                                              0.5 * _R_inc[nd](j, k) * _R_inc[nd](n, l))) -
-                    _R_inc[nd](l, m) * _R_inc[nd](i, n) * _R_inc[nd](j, r) * _jacobian_mult[nd](n, r, m, k);
+                    _R_inc[nd](l, m) * _R_inc[nd](i, n) * _R_inc[nd](j, r) * _Cijkl[nd](n, r, m, k);
 
   // second calculate derivative of inverse of Fhat w.r.t Fhat
   // d(inv(Fhat)_kl)/dFhat_mn = - inv(Fhat)_km * inv(Fhat)_nl
